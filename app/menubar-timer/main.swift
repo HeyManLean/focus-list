@@ -110,6 +110,10 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
             alert.informativeText = message
             alert.alertStyle = .informational
             alert.window.level = .floating
+            if let iconPath = Bundle.main.path(forResource: "logo", ofType: "png"),
+               let icon = NSImage(contentsOfFile: iconPath) {
+                alert.icon = icon
+            }
             alert.addButton(withTitle: "知道了")
             alert.runModal()
         }
