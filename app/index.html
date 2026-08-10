@@ -36,6 +36,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:11px;color:var(--text-2);cursor:pointer;font-size:14.5px;font-weight:600;transition:.15s;user-select:none}
 .nav-item:hover{background:var(--bg);color:var(--text)}
 .nav-item.active{background:linear-gradient(135deg,var(--primary-2),var(--primary));color:#fff;box-shadow:0 6px 16px rgba(255,90,60,.35)}
+.scope-bar{display:flex;gap:8px;margin-bottom:12px}
+.scope-chip{padding:6px 14px;border-radius:99px;background:var(--card);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;transition:.15s}
+.scope-chip:hover{border-color:var(--primary);color:var(--primary-dark)}
+.scope-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .nav-ico{width:20px;text-align:center;display:flex;align-items:center;justify-content:center}
 .nav-ico svg{width:18px;height:18px}
 .sidebar-bottom{border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px}
@@ -286,7 +290,8 @@ label.field input,label.field select{font-weight:500}
   <aside class="sidebar">
     <div class="logo"><span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 2"/><path d="M9.5 2.5h5"/></svg></span><span class="logo-text">专注清单</span></div>
     <nav class="nav">
-      <div class="nav-item active" data-view="tasks"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>今日任务</div>
+      <div class="nav-item active" data-view="tasks" data-scope="today"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>今日任务</div>
+      <div class="nav-item" data-view="tasks" data-scope="week"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v18M18 3v18M3 8h18M3 16h18"/></svg></span>本周任务</div>
       <div class="nav-item" data-view="timer"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>番茄钟</div>
       <div class="nav-item" data-view="stats"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 20v-6M12 20V8M17 20v-9"/></svg></span>统计</div>
       <div class="nav-item" data-view="review"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>每周回顾</div>
@@ -333,6 +338,10 @@ label.field input,label.field select{font-weight:500}
           <label>备注 <input type="text" id="addNotes" placeholder="可选" maxlength="100" style="width:170px"></label>
           <label>分组 <select id="addGroup"></select></label>
         </div>
+      </div>
+      <div class="scope-bar" id="scopeBar">
+        <span class="scope-chip" data-scope="today">今日任务</span>
+        <span class="scope-chip" data-scope="week">本周任务</span>
       </div>
       <div class="group-bar" id="groupBar">
         <div class="group-chips" id="groupChips"></div>
@@ -537,14 +546,14 @@ const META_KEY="focuslist.meta";
 const TIMER_KEY="focuslist.timer";
 const DEFAULTS={
   settings:{work:25,short:5,long:15,longInterval:4,weeklyGoal:20,sound:true,notifications:false,autoBreak:false,autoWork:false,dark:false,inboxName:"",showInbox:true},
-  tasks:[],sessions:[],groups:[],reviewOffset:0,currentTaskId:null,groupFilter:"all",welcomed:false
+  tasks:[],sessions:[],groups:[],reviewOffset:0,currentTaskId:null,groupFilter:"all",taskScope:"today",welcomed:false
 };
 let state=null;
 let serverOk=false;
 let lastSynced=null;
 let saveQueue=Promise.resolve();
 function loadMeta(){try{return JSON.parse(localStorage.getItem(META_KEY))||{}}catch(e){return{}}}
-function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify({welcomed:state.welcomed,reviewOffset:state.reviewOffset,currentTaskId:state.currentTaskId,groupFilter:state.groupFilter}))}catch(e){}}
+function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify({welcomed:state.welcomed,reviewOffset:state.reviewOffset,currentTaskId:state.currentTaskId,groupFilter:state.groupFilter,taskScope:state.taskScope}))}catch(e){}}
 const canonTask=t=>({id:t.id,title:t.title,notes:t.notes,priority:t.priority,estimate:t.estimate,due:t.due,created:t.created,completed:!!t.completed,completedAt:t.completedAt,pomos:t.pomos,lastFocused:t.lastFocused,groupId:t.groupId||""});
 const canonSession=s=>({id:s.id,type:s.type,taskId:s.taskId,start:s.start,end:s.end,mins:s.mins});
 const canonGroup=g=>({id:g.id,name:g.name,color:g.color,sort:g.sort||0});
@@ -565,6 +574,7 @@ function mergeState(raw){
   base.reviewOffset=typeof meta.reviewOffset==="number"?meta.reviewOffset:0;
   base.currentTaskId=meta.currentTaskId||null;
   base.groupFilter=meta.groupFilter||"all";
+  base.taskScope=meta.taskScope==="week"?"week":"today";
   base.welcomed=!!meta.welcomed;
   return base;
 }
@@ -932,11 +942,15 @@ function toast(msg){
 /* ============ Views / navigation ============ */
 let currentView="tasks";
 const VIEW_TITLE={tasks:"今日任务",timer:"番茄钟",stats:"统计",review:"每周回顾",settings:"设置"};
+const TASK_TITLES={today:"今日任务",week:"本周任务"};
+function renderNavActive(){
+  $$(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.view===currentView&&(!n.dataset.scope||n.dataset.scope===state.taskScope)));
+}
 function switchView(v){
   currentView=v;
-  $$(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.view===v));
+  renderNavActive();
   $$(".view").forEach(sec=>sec.classList.toggle("active",sec.id==="view-"+v));
-  $("#viewTitle").textContent=VIEW_TITLE[v];
+  $("#viewTitle").textContent=v==="tasks"?TASK_TITLES[state.taskScope]||"今日任务":VIEW_TITLE[v];
   renderSub();
   if(v==="tasks")renderTasks();
   if(v==="timer")renderTimerView();
@@ -1008,12 +1022,25 @@ function filterTasksByGroup(arr){
   if(state.groupFilter==="inbox")return arr.filter(t=>!t.groupId);
   return arr.filter(t=>t.groupId===state.groupFilter);
 }
+function weekEndKey(){
+  return fmtDate(addDays(weekStart(new Date()),6));
+}
+function inTaskScope(t){
+  if(!t.due)return true;
+  return state.taskScope==="week"?t.due<=weekEndKey():t.due<=todayKey();
+}
+function renderScopeBar(){
+  const bar=$("#scopeBar");
+  if(!bar)return;
+  $$("#scopeBar .scope-chip").forEach(c=>c.classList.toggle("active",c.dataset.scope===state.taskScope));
+}
 function groupSectionHtml(name,color,tasks){
   return "<div class='group-section-head'><i class='gdot' style='background:"+color+"'></i>"+esc(name)+" <span class='gcount'>"+tasks.length+"</span></div>"
     +tasks.map(taskItemHtml).join("");
 }
 function renderTasks(){
-  const acts=sortedTasks().filter(t=>!t.completed);
+  renderScopeBar();
+  const acts=sortedTasks().filter(t=>!t.completed&&inTaskScope(t));
   const dones=state.tasks.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
   const list=$("#taskList"), doneList=$("#doneList");
   renderGroupBar();
@@ -1711,7 +1738,15 @@ function applyDark(v){
 /* ============ Events & init ============ */
 function bindEvents(){
   /* nav */
-  $$(".nav-item").forEach(n=>n.addEventListener("click",()=>switchView(n.dataset.view)));
+  $$(".nav-item").forEach(n=>n.addEventListener("click",()=>{
+    if(n.dataset.view==="tasks"&&n.dataset.scope){state.taskScope=n.dataset.scope;saveMeta();}
+    switchView(n.dataset.view);
+  }));
+  $$("#scopeBar .scope-chip").forEach(c=>c.addEventListener("click",()=>{
+    state.taskScope=c.dataset.scope;
+    saveMeta();
+    switchView("tasks");
+  }));
   $("#miniTimer").addEventListener("click",()=>switchView("timer"));
   /* tasks */
   $("#addOptsToggle").addEventListener("click",()=>{
@@ -1878,6 +1913,8 @@ async function init(){
   await load();
   applyDark(state.settings.dark);
   restoreTimer();
+  $("#viewTitle").textContent=TASK_TITLES[state.taskScope]||"今日任务";
+  renderNavActive();
   bindEvents();
   renderSub();
   renderTasks();
