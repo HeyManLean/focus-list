@@ -6,6 +6,9 @@ final class App: NSObject, NSApplicationDelegate {
     private var pollTimer: Timer?
     private var state: [String: Any] = [:]
     private var alertedEndAt: Double = 0
+    private var flashTimer: Timer?
+    private var flashUntil: TimeInterval = 0
+    private var flashOn = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem.button?.title = "🍅 25:00"
@@ -60,12 +63,41 @@ final class App: NSObject, NSApplicationDelegate {
     private func checkCompletion() {
         let status = state["status"] as? String ?? "idle"
         let endAt = state["endAt"] as? Double ?? 0
+        if status == "running" {
+            stopFlash()
+        }
         guard status == "running", endAt > 0 else { return }
         let now = Date().timeIntervalSince1970 * 1000
         guard endAt <= now, endAt != alertedEndAt else { return }
         alertedEndAt = endAt
         let mode = state["mode"] as? String ?? "work"
+        startFlash()
         showCompletionAlert(mode: mode)
+    }
+
+    private func startFlash() {
+        flashUntil = Date().timeIntervalSince1970 + 180
+        flashOn = false
+        flashTimer?.invalidate()
+        flashTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
+            self?.flashTick()
+        }
+    }
+
+    private func stopFlash() {
+        flashTimer?.invalidate()
+        flashTimer = nil
+        flashOn = false
+    }
+
+    private func flashTick() {
+        if Date().timeIntervalSince1970 > flashUntil {
+            stopFlash()
+            updateTitle()
+            return
+        }
+        flashOn.toggle()
+        statusItem.button?.title = flashOn ? "⏰ 时间到！" : "🍅 00:00"
     }
 
     private func showCompletionAlert(mode: String) {
@@ -86,6 +118,9 @@ final class App: NSObject, NSApplicationDelegate {
     }
 
     private func updateTitle() {
+        if flashTimer != nil {
+            return
+        }
         let mode = state["mode"] as? String ?? "work"
         let status = state["status"] as? String ?? "idle"
         let endAt = state["endAt"] as? Double ?? 0
