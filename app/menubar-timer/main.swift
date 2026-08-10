@@ -5,6 +5,7 @@ final class App: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var pollTimer: Timer?
     private var state: [String: Any] = [:]
+    private var alertedEndAt: Double = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem.button?.title = "🍅 25:00"
@@ -50,9 +51,38 @@ final class App: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 self.state = obj
                 self.updateTitle()
+                self.checkCompletion()
             }
         }
         task.resume()
+    }
+
+    private func checkCompletion() {
+        let status = state["status"] as? String ?? "idle"
+        let endAt = state["endAt"] as? Double ?? 0
+        guard status == "running", endAt > 0 else { return }
+        let now = Date().timeIntervalSince1970 * 1000
+        guard endAt <= now, endAt != alertedEndAt else { return }
+        alertedEndAt = endAt
+        let mode = state["mode"] as? String ?? "work"
+        showCompletionAlert(mode: mode)
+    }
+
+    private func showCompletionAlert(mode: String) {
+        let isWork = mode == "work"
+        let title = isWork ? "🍅 专注完成！" : "休息结束"
+        let message = isWork ? "完成一个番茄钟，站起来休息一下吧" : "休息结束，准备好开始下一个番茄了吗？"
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            NSSound.beep()
+            let alert = NSAlert()
+            alert.messageText = title
+            alert.informativeText = message
+            alert.alertStyle = .informational
+            alert.window.level = .floating
+            alert.addButton(withTitle: "知道了")
+            alert.runModal()
+        }
     }
 
     private func updateTitle() {

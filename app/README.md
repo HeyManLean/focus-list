@@ -60,5 +60,6 @@ python3 server.py
 
 - 工具位置：`menubar-timer/FocusTimerMenu.app`，显示 🍅/🍵/🌙 + 剩余时间
 - 点击菜单栏图标可「打开专注清单」或「退出」
+- 番茄钟到点会自动弹出置顶提醒窗口（即使页面标签在后台或已关闭）
 - 已注册开机自启（LaunchAgent：`com.focuslist.menubar-timer`）
 - 修改代码后重新构建：`menubar-timer/build.sh`

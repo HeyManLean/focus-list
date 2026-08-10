@@ -1290,6 +1290,11 @@ function syncTimer(force){
   lastTimerSync={mode:timer.mode,status:timer.status,rem:Math.round(timer.remaining)};
   fetch("/api/timer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:timer.mode,status:timer.status,endAt:timer.endAt,startedAt:timer.startedAt,remaining:Math.round(timer.remaining)})}).catch(()=>{});
 }
+window.addEventListener("beforeunload",()=>{
+  try{
+    navigator.sendBeacon("/api/timer",JSON.stringify({mode:timer.mode,status:timer.status,endAt:timer.endAt,startedAt:timer.startedAt,remaining:Math.round(timer.remaining)}));
+  }catch(e){}
+});
 
 /* ============ Stats helpers ============ */
 function sessionsIn(startMs,endMs){
