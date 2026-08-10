@@ -533,6 +533,7 @@ function stateText(){
 /* ============ Store (SQLite via local server) ============ */
 const LS_KEY="focuslist.v1";
 const META_KEY="focuslist.meta";
+const TIMER_KEY="focuslist.timer";
 const DEFAULTS={
   settings:{work:25,short:5,long:15,longInterval:4,weeklyGoal:20,sound:true,notifications:false,autoBreak:false,autoWork:false,dark:false},
   tasks:[],sessions:[],groups:[],reviewOffset:0,currentTaskId:null,groupFilter:"all",welcomed:false
@@ -645,6 +646,7 @@ function resetTimer(mode){
   timer.status="idle";
   timer.remaining=durOf();
   timer.endAt=0;
+  persistTimer(true);
   renderTimerView();
 }
 function startTimer(){
@@ -655,6 +657,7 @@ function startTimer(){
   timer.status="running";
   if(timer.tickId)clearInterval(timer.tickId);
   timer.tickId=setInterval(tick,250);
+  persistTimer(true);
   renderTimerView();
 }
 function pauseTimer(){
@@ -662,7 +665,44 @@ function pauseTimer(){
   timer.remaining=Math.max(0,(timer.endAt-Date.now())/1000);
   timer.status="paused";
   if(timer.tickId){clearInterval(timer.tickId);timer.tickId=null}
+  persistTimer(true);
   renderTimerView();
+}
+let lastTimerSave=0;
+function persistTimer(force){
+  const now=Date.now();
+  if(!force&&now-lastTimerSave<1000)return;
+  lastTimerSave=now;
+  try{
+    localStorage.setItem(TIMER_KEY,JSON.stringify({
+      mode:timer.mode,status:timer.status,endAt:timer.endAt,startedAt:timer.startedAt,
+      remaining:Math.round(timer.remaining*10)/10,pomosInRun:timer.pomosInRun
+    }));
+  }catch(e){}
+}
+function restoreTimer(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(TIMER_KEY)||"null")}catch(e){saved=null}
+  if(!saved||typeof saved!=="object"||!saved.mode){resetTimer("work");return}
+  const mode=["work","short","long"].includes(saved.mode)?saved.mode:"work";
+  const status=saved.status==="running"||saved.status==="paused"?saved.status:"idle";
+  if(status==="running"&&saved.endAt>0){
+    const rem=(saved.endAt-Date.now())/1000;
+    timer.mode=mode;timer.status="running";timer.endAt=saved.endAt;
+    timer.startedAt=saved.startedAt||Date.now()-(durOf()-rem)*1000;
+    timer.remaining=Math.max(0,rem);
+    timer.pomosInRun=saved.pomosInRun||0;
+    if(timer.remaining<=0){completeSession();return}
+    if(timer.tickId)clearInterval(timer.tickId);
+    timer.tickId=setInterval(tick,250);
+  }else if(status==="paused"&&(saved.remaining||0)>0){
+    timer.mode=mode;timer.status="paused";timer.endAt=0;
+    timer.startedAt=saved.startedAt||0;
+    timer.remaining=saved.remaining;
+    timer.pomosInRun=saved.pomosInRun||0;
+  }else{
+    resetTimer(mode);
+  }
 }
 function tick(){
   const rem=Math.max(0,(timer.endAt-Date.now())/1000);
@@ -678,6 +718,7 @@ function updateTimerUI(){
   const st=$("#stateLabel");
   if(st){st.textContent=stateText()}
   renderMiniTimer();
+  persistTimer();
 }
 function completeSession(){
   if(timer.tickId){clearInterval(timer.tickId);timer.tickId=null}
@@ -693,6 +734,7 @@ function completeSession(){
     if(task){task.pomos=(task.pomos||0)+1;task.lastFocused=end}
   }
   timer.status="idle";timer.remaining=0;
+  persistTimer(true);
   save();
   renderAll();
   if(s.sound)chime(timer.mode==="work");
@@ -1774,7 +1816,7 @@ function renderAll(){
 async function init(){
   await load();
   applyDark(state.settings.dark);
-  resetTimer("work");
+  restoreTimer();
   bindEvents();
   renderSub();
   renderTasks();
