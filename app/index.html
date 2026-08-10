@@ -454,6 +454,7 @@ label.field input,label.field select{font-weight:500}
         <div class="toggle-row"><span>专注结束后自动开始休息</span><label class="switch"><input type="checkbox" id="setAutoBreak"><span></span></label></div>
         <div class="toggle-row"><span>休息结束后自动开始专注</span><label class="switch"><input type="checkbox" id="setAutoWork"><span></span></label></div>
         <div class="toggle-row"><span>深色模式</span><label class="switch"><input type="checkbox" id="setDark"><span></span></label></div>
+        <div class="toggle-row"><span>显示「收件箱」分组</span><label class="switch"><input type="checkbox" id="setShowInbox"><span></span></label></div>
       </div>
       <div class="card">
         <h3>AI 分析（可选）</h3>
@@ -535,7 +536,7 @@ const LS_KEY="focuslist.v1";
 const META_KEY="focuslist.meta";
 const TIMER_KEY="focuslist.timer";
 const DEFAULTS={
-  settings:{work:25,short:5,long:15,longInterval:4,weeklyGoal:20,sound:true,notifications:false,autoBreak:false,autoWork:false,dark:false},
+  settings:{work:25,short:5,long:15,longInterval:4,weeklyGoal:20,sound:true,notifications:false,autoBreak:false,autoWork:false,dark:false,inboxName:"",showInbox:true},
   tasks:[],sessions:[],groups:[],reviewOffset:0,currentTaskId:null,groupFilter:"all",welcomed:false
 };
 let state=null;
@@ -888,10 +889,15 @@ function showModal(o){
     const mg=e.target.closest("[data-mg]");
     if(mg){
       const parts=mg.dataset.mg.split(":");
-      const g=groupById(parts[1]);
       close();
-      if(parts[0]==="edit"&&g)editGroup(g.id);
-      else if(parts[0]==="del"&&g)removeGroup(g);
+      const id=parts[1];
+      if(parts[0]==="edit"&&id==="inbox")editInbox();
+      else if(parts[0]==="del"&&id==="inbox")removeInbox();
+      else{
+        const g=groupById(id);
+        if(parts[0]==="edit"&&g)editGroup(g.id);
+        else if(parts[0]==="del"&&g)removeGroup(g);
+      }
       return;
     }
     if(e.target===overlay)close();
@@ -1015,7 +1021,7 @@ function renderTasks(){
   if(state.groupFilter==="all"){
     const inbox=filtered.filter(t=>!t.groupId);
     const parts=[];
-    if(inbox.length)parts.push(groupSectionHtml("收件箱","#9CA3AF",inbox));
+    if(inbox.length)parts.push(groupSectionHtml(inboxLabel(),"#9CA3AF",inbox));
     sortedGroups().forEach(g=>{
       const gt=filtered.filter(t=>t.groupId===g.id);
       if(gt.length)parts.push(groupSectionHtml(g.name,g.color,gt));
@@ -1107,7 +1113,8 @@ const GROUP_COLORS=["#FF5A3C","#FF8A2B","#F0A72A","#2FBF9B","#4A8BFF","#8B5CF6",
 let pickedColor=GROUP_COLORS[0];
 function sortedGroups(){return state.groups.slice().sort((a,b)=>(a.sort||0)-(b.sort||0)||(a.id<b.id?-1:1))}
 function groupById(id){return state.groups.find(g=>g.id===id)}
-function groupOptions(sel){return '<option value="">收件箱</option>'+sortedGroups().map(g=>'<option value="'+g.id+'"'+(sel===g.id?" selected":"")+'>'+esc(g.name)+'</option>').join("")}
+function inboxLabel(){return state.settings.inboxName||"收件箱"}
+function groupOptions(sel){return '<option value="">'+esc(inboxLabel())+'</option>'+sortedGroups().map(g=>'<option value="'+g.id+'"'+(sel===g.id?" selected":"")+'>'+esc(g.name)+'</option>').join("")}
 function activeCountOf(gid){return state.tasks.filter(t=>!t.completed&&(gid?t.groupId===gid:!t.groupId)).length}
 function renderGroupBar(){
   const chips=$("#groupChips");
@@ -1115,7 +1122,7 @@ function renderGroupBar(){
   const total=state.tasks.filter(t=>!t.completed).length;
   const items=[
     {id:"all",name:"全部",color:"#FF5A3C",n:total},
-    {id:"inbox",name:"收件箱",color:"#9CA3AF",n:activeCountOf("")},
+    ...(state.settings.showInbox!==false?[{id:"inbox",name:inboxLabel(),color:"#9CA3AF",n:activeCountOf("")}]:[]),
     ...sortedGroups().map(g=>({id:g.id,name:g.name,color:g.color,n:activeCountOf(g.id)}))
   ];
   chips.innerHTML=items.map(it=>'<span class="gchip-bar'+(state.groupFilter===it.id?" active":"")+'" data-g="'+it.id+'"><i class="gdot" style="background:'+it.color+'"></i>'+esc(it.name)+'<span class="gcount">'+it.n+'</span></span>').join("");
@@ -1128,16 +1135,16 @@ function renderGroups(){
   const total=state.tasks.filter(t=>!t.completed).length;
   const items=[
     {id:"all",name:"全部任务",color:"#FF5A3C",n:total},
-    {id:"inbox",name:"收件箱",color:"#9CA3AF",n:activeCountOf("")},
+    ...(state.settings.showInbox!==false?[{id:"inbox",name:inboxLabel(),color:"#9CA3AF",n:activeCountOf("")}]:[]),
     ...sortedGroups().map(g=>({id:g.id,name:g.name,color:g.color,n:activeCountOf(g.id)}))
   ];
   el.innerHTML=items.map(it=>{
-    const custom=it.id!=="all"&&it.id!=="inbox";
+    const editable=it.id!=="all";
     return "<div class='sg-item"+(state.groupFilter===it.id?" active":"")+"' data-g='"+it.id+"'>"
       +"<span class='gdot' style='background:'+it.color+'></span>"
       +"<span class='sg-name'>"+esc(it.name)+"</span>"
       +"<span class='sg-count'>"+it.n+"</span>"
-      +(custom?"<span class='sg-item-act'>"
+      +(editable?"<span class='sg-item-act'>"
         +"<button class='sg-act' data-sgact='edit:"+it.id+"' title='重命名'>"+ic("edit",13)+"</button>"
         +"<button class='sg-act' data-sgact='del:"+it.id+"' title='删除'>"+ic("del",13)+"</button>"
         +"</span>":"")
@@ -1217,16 +1224,58 @@ function removeGroup(g){
   });
 }
 function manageGroups(){
-  const rows=sortedGroups().map(g=>
-    "<div class='mg-row'><span class='gdot' style='background:"+g.color+"'></span><span class='mg-name'>"+esc(g.name)+"</span>"
+  const rows=[];
+  if(state.settings.showInbox!==false){
+    rows.push("<div class='mg-row'><span class='gdot' style='background:#9CA3AF'></span><span class='mg-name'>"+esc(inboxLabel())+"</span>"
+      +"<span class='sg-count'>"+activeCountOf("")+" 个任务</span>"
+      +"<button class='btn ghost sm' data-mg='edit:inbox'>"+ic("edit",13)+"</button>"
+      +"<button class='btn ghost sm' data-mg='del:inbox'>"+ic("del",13)+"</button></div>");
+  }
+  sortedGroups().forEach(g=>{
+    rows.push("<div class='mg-row'><span class='gdot' style='background:"+g.color+"'></span><span class='mg-name'>"+esc(g.name)+"</span>"
     +"<span class='sg-count'>"+activeCountOf(g.id)+" 个任务</span>"
     +"<button class='btn ghost sm' data-mg='edit:"+g.id+"'>"+ic("edit",13)+"</button>"
-    +"<button class='btn ghost sm' data-mg='del:"+g.id+"'>"+ic("del",13)+"</button></div>"
-  ).join("");
+    +"<button class='btn ghost sm' data-mg='del:"+g.id+"'>"+ic("del",13)+"</button></div>");
+  });
   showModal({
     title:"管理分组",
-    body:rows||"<div class='chart-empty'>还没有分组，点右上角 ＋ 新建一个</div>",
+    body:rows.join("")||"<div class='chart-empty'>还没有分组，点右上角 ＋ 新建一个</div>",
     actions:[{text:"关闭",cls:"ghost",fn:null}]
+  });
+}
+function editInbox(){
+  showModal({
+    title:"重命名收件箱",
+    body:"<div style='display:flex;flex-direction:column;gap:12px;text-align:left'>"
+      +"<label class='field'>分组名称<input type='text' id='gName' value='"+esc(inboxLabel())+"' maxlength='20'></label>"
+      +"<div class='db-info'>重命名后，未分组任务会显示在新的名称下。</div>"
+      +"</div>",
+    actions:[
+      {text:"保存",cls:"primary",fn:()=>{
+        const name=$("#gName").value.trim();
+        if(!name){toast("请输入分组名称");return}
+        state.settings.inboxName=name;
+        save();renderGroupBar();renderGroups();renderTasks();renderSub();
+        toast("已保存");
+      }},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
+  });
+  setTimeout(()=>{const el=$("#gName");if(el){el.focus();el.select()}},50);
+}
+function removeInbox(){
+  showModal({
+    title:"删除收件箱",
+    body:"删除后，「"+esc(inboxLabel())+"」将从分组列表隐藏，未分组任务只显示在「全部任务」里。可在设置中重新开启。",
+    actions:[
+      {text:"删除",cls:"danger",fn:()=>{
+        state.settings.showInbox=false;
+        if(state.groupFilter==="inbox")state.groupFilter="all";
+        save();renderGroupBar();renderGroups();renderTasks();renderSub();
+        toast("已删除收件箱");
+      }},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
   });
 }
 function focusTask(id){
@@ -1648,6 +1697,7 @@ function renderSettings(){
   $("#setLongInterval").value=s.longInterval;$("#setWeeklyGoal").value=s.weeklyGoal;
   $("#setSound").checked=s.sound;$("#setNotif").checked=s.notifications;
   $("#setAutoBreak").checked=s.autoBreak;$("#setAutoWork").checked=s.autoWork;$("#setDark").checked=s.dark;
+  $("#setShowInbox").checked=s.showInbox!==false;
   $("#aiBaseUrl").value=s.aiBaseUrl||"";
   $("#aiApiKey").value=s.aiApiKey||"";
   $("#aiModel").value=s.aiModel||"";
@@ -1676,9 +1726,14 @@ function bindEvents(){
     const act=e.target.closest("[data-sgact]");
     if(act){
       const parts=act.dataset.sgact.split(":");
-      const g=groupById(parts[1]);
-      if(parts[0]==="edit"&&g)editGroup(g.id);
-      else if(parts[0]==="del"&&g)removeGroup(g);
+      const id=parts[1];
+      if(parts[0]==="edit"&&id==="inbox")editInbox();
+      else if(parts[0]==="del"&&id==="inbox")removeInbox();
+      else{
+        const g=groupById(id);
+        if(parts[0]==="edit"&&g)editGroup(g.id);
+        else if(parts[0]==="del"&&g)removeGroup(g);
+      }
       return;
     }
     const c=e.target.closest(".sg-item");
@@ -1758,6 +1813,7 @@ function bindEvents(){
   $("#setAutoBreak").addEventListener("change",e=>{state.settings.autoBreak=e.target.checked;save()});
   $("#setAutoWork").addEventListener("change",e=>{state.settings.autoWork=e.target.checked;save()});
   $("#setDark").addEventListener("change",e=>{state.settings.dark=e.target.checked;save();applyDark(state.settings.dark)});
+  $("#setShowInbox").addEventListener("change",e=>{state.settings.showInbox=e.target.checked;save();renderGroupBar();renderGroups();renderTasks()});
   $("#exportBtn").addEventListener("click",exportData);
   $("#clearBtn").addEventListener("click",clearData);
   $("#retryBtn").addEventListener("click",async()=>{await load();applyDark(state.settings.dark);resetTimer(timer.mode);renderAll();renderSettings();fetchDbInfo();toast(serverOk?"已连接数据库":"仍无法连接，请确认服务已启动")});
