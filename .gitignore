@@ -1,0 +1,14 @@
+# 本机数据（不入库）
+app/focuslist.db
+app/timer-state.json
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 菜单栏工具构建产物（源码在 app/menubar-timer/，可运行 build.sh 重新构建）
+app/menubar-timer/build/
+app/menubar-timer/FocusTimerMenu.app/
+
+# macOS
+.DS_Store

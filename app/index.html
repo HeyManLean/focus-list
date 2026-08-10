@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#FF5A3C">
+<title>专注清单 · 番茄钟</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍅%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --primary:#FF5A3C; --primary-2:#FF7A5C; --primary-dark:#E8482A; --primary-soft:#FFF0EB;
+  --green:#2FBF9B; --green-soft:#E5F7F2;
+  --blue:#4A8BFF; --blue-soft:#EAF1FF;
+  --amber:#F0A72A; --amber-soft:#FEF4E0;
+  --red:#E5484D; --red-soft:#FDEBEC;
+  --bg:#F5F6FA; --card:#FFFFFF; --border:#E7E9F0;
+  --text:#252938; --text-2:#6B7280; --text-3:#A0A6B4;
+  --shadow:0 1px 2px rgba(23,26,40,.04),0 8px 24px rgba(23,26,40,.06);
+  --radius:14px;
+}
+[data-theme="dark"]{
+  --bg:#14161C; --card:#1D2028; --border:#2A2F3B; --text:#EAECF3; --text-2:#A7ADC2; --text-3:#6D7386;
+  --primary-soft:#3D2119; --green-soft:#14302A; --blue-soft:#17233C; --amber-soft:#362B10; --red-soft:#3A1C1E;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+#app{display:flex;min-height:100vh}
+/* ===== Sidebar ===== */
+.sidebar{width:236px;position:fixed;top:0;left:0;bottom:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:22px 14px 16px;z-index:50;transition:background .25s}
+.logo{display:flex;align-items:center;gap:10px;padding:0 12px 22px}
+.logo-icon{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--primary-2),var(--primary));display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 6px 14px rgba(255,90,60,.35)}
+.logo-text{font-size:17px;font-weight:800;letter-spacing:.5px}
+.nav{flex:1;display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:11px;color:var(--text-2);cursor:pointer;font-size:14.5px;font-weight:600;transition:.15s;user-select:none}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,var(--primary-2),var(--primary));color:#fff;box-shadow:0 6px 16px rgba(255,90,60,.35)}
+.nav-ico{width:20px;text-align:center;display:flex;align-items:center;justify-content:center}
+.nav-ico svg{width:18px;height:18px}
+.sidebar-bottom{border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.mini-timer{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;background:var(--bg);cursor:pointer;transition:.15s}
+.mini-timer:hover{box-shadow:var(--shadow)}
+.mini-dot{width:9px;height:9px;border-radius:50%;background:var(--text-3);flex:none}
+.mini-dot.mode-work{background:var(--primary)}
+.mini-dot.mode-short{background:var(--green)}
+.mini-dot.mode-long{background:var(--blue)}
+.mini-time{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.mini-state{font-size:11.5px;color:var(--text-3);font-weight:500}
+/* ===== Main ===== */
+.main{margin-left:236px;flex:1;padding:26px 34px 60px;max-width:1080px}
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+.topbar h1{font-size:20px;font-weight:800}
+.sub{color:var(--text-2);font-size:12.5px;margin-top:4px}
+.view{display:none}
+.view.active{display:block;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* ===== Cards & common ===== */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;transition:background .25s}
+.card h3{font-size:15.5px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.btn{border:0;cursor:pointer;font-weight:600;font-size:14px;padding:10px 18px;border-radius:99px;transition:.15s;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(135deg,var(--primary-2),var(--primary));color:#fff;box-shadow:0 6px 16px rgba(255,90,60,.32)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{background:var(--bg);color:var(--text-2)}
+.btn.ghost:hover{background:var(--border);color:var(--text)}
+.btn.soft{background:var(--primary-soft);color:var(--primary-dark)}
+.btn.soft:hover{filter:brightness(.98)}
+.btn.danger{background:var(--red-soft);color:var(--red)}
+.btn.danger:hover{filter:brightness(.96)}
+.btn.big{padding:14px 46px;font-size:16px}
+.btn.link{background:transparent;color:var(--primary);box-shadow:none;padding:6px 10px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{font-family:inherit;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);background:var(--card);box-shadow:0 0 0 3px rgba(255,90,60,.14)}
+select{cursor:pointer}
+input[type=number]{width:88px}
+label.field{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:var(--text-2)}
+label.field input,label.field select{font-weight:500}
+.group-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.group-chips{display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:0}
+.gchip-bar{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;background:var(--card);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;user-select:none;transition:.15s;box-shadow:var(--shadow)}
+.gchip-bar:hover{color:var(--text);border-color:var(--primary)}
+.gchip-bar.active{background:var(--primary-soft);color:var(--primary-dark);border-color:var(--primary)}
+.gchip-bar .gcount{font-size:11px;background:var(--bg);border-radius:99px;padding:1px 7px;font-weight:700}
+.gchip-bar.active .gcount{background:#fff}
+.group-actions{display:flex;gap:6px;flex:none}
+.group-actions .icon-btn{width:34px;height:34px;border-radius:10px;border:0;background:var(--card);border:1px solid var(--border);color:var(--text-2);cursor:pointer;font-size:15px;transition:.15s;display:flex;align-items:center;justify-content:center}
+.group-actions .icon-btn:hover{background:var(--primary-soft);color:var(--primary-dark)}
+.side-groups{border-top:1px solid var(--border);margin-top:12px;padding-top:10px;max-height:32vh;overflow-y:auto}
+.sg-head{display:flex;align-items:center;justify-content:space-between;padding:0 12px 6px;font-size:11.5px;font-weight:700;color:var(--text-3);letter-spacing:.5px}
+.sg-add{width:20px;height:20px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--text-3);transition:.15s}
+.sg-add:hover{background:var(--primary-soft);color:var(--primary-dark)}
+.sg-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-2);transition:.15s}
+.sg-item:hover{background:var(--bg);color:var(--text)}
+.sg-item.active{background:var(--primary-soft);color:var(--primary-dark)}
+.sg-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sg-count{font-size:11px;color:var(--text-3);font-weight:700}
+.sg-item-act{display:none;gap:2px;flex:none}
+.sg-item:hover .sg-item-act{display:flex}
+.sg-act{width:24px;height:24px;border:0;border-radius:7px;background:transparent;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:.15s}
+.sg-act:hover{background:var(--primary-soft);color:var(--primary-dark)}
+.sg-act svg{width:13px;height:13px}
+.gdot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.group-section-head{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;color:var(--text-2);padding:14px 4px 8px}
+.group-section-head .gcount{font-size:11px;background:var(--bg);border-radius:99px;padding:1px 8px;font-weight:700;color:var(--text-3)}
+.chip.gchip{background:var(--bg);color:var(--text-2);gap:5px}
+.ring-hint{font-size:12px;color:var(--text-3);margin:-16px 0 18px;font-weight:500}
+.color-row{display:flex;gap:10px;flex-wrap:wrap}
+.cswatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s}
+.cswatch.sel{border-color:var(--text);box-shadow:0 0 0 3px rgba(255,255,255,.6)}
+.mg-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px dashed var(--border);font-size:14px}
+.mg-row:last-child{border-bottom:0}
+.mg-name{flex:1;text-align:left;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ===== Tasks ===== */
+.add-card{padding:18px}
+.add-form{display:flex;gap:10px}
+.add-form input[type=text]{flex:1;font-size:15px;padding:12px 16px;border-radius:12px}
+.add-extras{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;align-items:flex-end;border-top:1px dashed var(--border);padding-top:12px}
+.add-opts-toggle{margin-top:10px;padding:4px 8px;font-size:12.5px;color:var(--text-3)}
+.add-extras .field{flex-direction:row;align-items:center;gap:8px}
+.add-extras label{font-size:12.5px;color:var(--text-2);font-weight:600;display:flex;align-items:center;gap:8px}
+.add-extras select,.add-extras input{padding:6px 9px;font-size:13px}
+.task-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:13px;color:var(--text-2)}
+.task-summary b{color:var(--text);font-weight:700}
+.task-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:.15s;animation:fadeUp .25s ease}
+.task-item:hover{box-shadow:0 4px 18px rgba(23,26,40,.1);border-color:var(--primary)}
+.check{width:23px;height:23px;border-radius:50%;border:2px solid var(--border);cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;transition:.18s;font-size:12px;color:transparent;background:var(--card)}
+.check:hover{border-color:var(--green)}
+.task-item.done .check{background:var(--green);border-color:var(--green);color:#fff}
+.task-main{flex:1;min-width:0}
+.task-title{font-size:15px;font-weight:600;word-break:break-word;transition:.15s}
+.task-item.done .task-title{color:var(--text-3);text-decoration:line-through}
+.task-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}
+.chip{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;background:transparent;border:1px solid var(--border);color:var(--text-2);display:inline-flex;align-items:center;gap:4px}
+.chip svg{width:11px;height:11px}
+.chip.pri-high{background:var(--red-soft);color:var(--red)}
+.chip.pri-mid{background:var(--amber-soft);color:#C77D0A}
+.chip.pri-low{background:var(--blue-soft);color:var(--blue)}
+.chip.overdue{background:var(--red-soft);color:var(--red)}
+.chip.pomo{background:var(--primary-soft);color:var(--primary-dark)}
+.chip.full{background:var(--green-soft);color:#1E9E7E}
+.task-note{font-size:12.5px;color:var(--text-3);margin-top:6px;word-break:break-word}
+.task-actions{display:flex;gap:6px;flex:none}
+.task-actions .icon-btn{width:34px;height:34px;border-radius:10px;border:0;background:var(--bg);color:var(--text-2);cursor:pointer;font-size:15px;transition:.15s;display:flex;align-items:center;justify-content:center}
+.task-actions .icon-btn svg{width:15px;height:15px}
+.group-actions .icon-btn svg{width:16px;height:16px}
+.task-actions .icon-btn:hover{background:var(--primary-soft);color:var(--primary-dark)}
+.task-actions .icon-btn.del:hover{background:var(--red-soft);color:var(--red)}
+.done-head{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--text-2);cursor:pointer;padding:10px 4px;user-select:none;font-weight:600}
+.done-head .arrow{transition:.2s;font-size:11px}
+.done-head.collapsed .arrow{transform:rotate(-90deg)}
+.done-section.collapsed #doneList{display:none}
+/* ===== Timer ===== */
+.timer-wrap{display:flex;flex-direction:column;align-items:center;padding:18px 0}
+.mode-tabs{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:5px;margin-bottom:34px}
+.mode-tab{border:0;background:transparent;padding:9px 26px;border-radius:99px;font-size:14px;font-weight:700;color:var(--text-2);cursor:pointer;transition:.18s;font-family:inherit}
+.mode-tab.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(23,26,40,.1)}
+.mode-tab.active.mode-work{color:var(--primary-dark)}
+.mode-tab.active.mode-short{color:#1E9E7E}
+.mode-tab.active.mode-long{color:var(--blue)}
+.ring-wrap{position:relative;width:320px;height:320px;margin-bottom:30px;cursor:pointer;user-select:none}
+.ring{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--bg);stroke-width:13}
+.ring-fg{fill:none;stroke:var(--primary);stroke-width:13;stroke-linecap:round;transition:stroke .3s,stroke-dashoffset .95s linear}
+.ring-fg.mode-short{stroke:var(--green)}
+.ring-fg.mode-long{stroke:var(--blue)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.ring-time{font-size:58px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.ring-state{font-size:13.5px;color:var(--text-2);font-weight:600}
+.task-select-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:26px;width:min(420px,100%)}
+.task-select-wrap select{width:100%;text-align:center;font-size:14.5px;font-weight:600;padding:12px 14px;border-radius:12px}
+.mini-label{font-size:12px;color:var(--text-3);font-weight:600}
+.timer-controls{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.timer-stats{font-size:13px;color:var(--text-2);display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+.timer-stats b{color:var(--text);font-weight:700}
+.notif-banner{display:flex;align-items:center;gap:12px;margin-top:20px;background:var(--amber-soft);color:#8A5B08;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:600;max-width:520px}
+.notif-banner button{border:0;background:#fff;color:#8A5B08;padding:7px 16px;border-radius:99px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit}
+/* ===== Stats / Review ===== */
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:3px;justify-content:center}
+.stat-val{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat-lbl{font-size:12.5px;color:var(--text-2);font-weight:600;margin-top:2px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.chart{width:100%}
+.chart svg{display:block;width:100%;height:auto}
+.chart-empty{color:var(--text-3);font-size:13.5px;text-align:center;padding:38px 0}
+.goal-bar{height:12px;background:var(--bg);border-radius:99px;overflow:hidden;margin-top:12px}
+.goal-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary-2),var(--primary));transition:width .5s ease}
+.goal-text{font-size:13px;color:var(--text-2);margin-top:8px;font-weight:600}
+.rank-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px dashed var(--border);font-size:14px}
+.rank-row:last-child{border-bottom:0}
+.rank-no{width:22px;height:22px;border-radius:7px;background:var(--bg);color:var(--text-2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.rank-no.top{background:var(--primary-soft);color:var(--primary-dark)}
+.rank-name{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-pomos{font-size:12.5px;color:var(--text-2);font-weight:600;white-space:nowrap}
+.review-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.review-week{text-align:center}
+.review-range{font-size:16px;font-weight:800}
+.review-week .btn{margin-top:4px}
+.day-row{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 4px;border-bottom:1px dashed var(--border);font-size:13.5px}
+.day-row:last-child{border-bottom:0}
+.day-name{font-weight:700}
+.day-date{color:var(--text-3);font-size:12px}
+.day-bars{display:flex;gap:3px;align-items:flex-end;height:22px}
+.day-bars i{width:8px;border-radius:3px;background:var(--primary);opacity:.9}
+.day-bars i:nth-child(2){background:var(--primary-2)}
+.day-bars i:nth-child(3){background:var(--green)}
+.day-bars i:nth-child(4){background:var(--blue)}
+.day-bars i:nth-child(5){background:var(--amber)}
+.day-nums{text-align:right;color:var(--text-2);font-weight:600;font-size:12.5px;white-space:nowrap}
+.day-nums .p{color:var(--text);font-size:14px}
+.insight{display:flex;gap:10px;padding:11px 2px;border-bottom:1px dashed var(--border);font-size:14px;color:var(--text-2);line-height:1.6}
+.insight:last-child{border-bottom:0}
+.insight .emo{flex:none}
+.insight b{color:var(--text)}
+.ai-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.ai-head h3{margin-bottom:0}
+.btn.sm{padding:6px 13px;font-size:12.5px}
+.mg-row .btn.sm{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px}
+.ai-text{font-size:14px;line-height:1.9;color:var(--text-2);white-space:pre-line}
+.ai-text p{margin-bottom:9px}
+.ai-text p:last-child{margin-bottom:0}
+.ai-note{font-size:12px;color:var(--text-3);margin-top:12px;border-top:1px dashed var(--border);padding-top:10px}
+/* ===== Settings ===== */
+.setting-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+.setting-grid label{display:flex;flex-direction:column;gap:7px;font-size:12.5px;font-weight:600;color:var(--text-2)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:13px 2px;border-bottom:1px dashed var(--border);font-size:14.5px;font-weight:600}
+.toggle-row:last-of-type{border-bottom:0}
+.switch{position:relative;display:inline-block;width:46px;height:25px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.2s;cursor:pointer}
+.switch span:before{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.switch input:checked+span{background:var(--primary)}
+.switch input:checked+span:before{transform:translateX(21px)}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.about{font-size:12.5px;color:var(--text-3);text-align:center}
+/* ===== Modal ===== */
+.overlay{position:fixed;inset:0;background:rgba(18,20,30,.5);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:200;animation:fadeIn .2s ease;padding:20px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-card{background:var(--card);border-radius:20px;padding:30px 28px;width:min(430px,94vw);box-shadow:0 24px 70px rgba(0,0,0,.25);animation:pop .28s cubic-bezier(.2,.9,.3,1.15);text-align:center;transition:background .25s}
+@keyframes pop{from{opacity:0;transform:scale(.86) translateY(14px)}to{opacity:1;transform:none}}
+.modal-emoji{font-size:52px;margin-bottom:10px}
+.modal-title{font-size:20px;font-weight:800;margin-bottom:8px}
+.modal-body{font-size:14.5px;color:var(--text-2);line-height:1.7;margin-bottom:22px}
+.modal-count{font-size:12.5px;color:var(--text-3);margin-bottom:14px;font-weight:600}
+.modal-actions{display:flex;flex-direction:column;gap:9px}
+.modal-actions .btn{width:100%;padding:12px}
+/* ===== Toast ===== */
+#toast-root{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--text);color:var(--card);padding:11px 22px;border-radius:99px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:toastIn .25s ease}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.server-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--red-soft);color:var(--red);padding:12px 18px;border-radius:12px;margin-bottom:18px;font-size:13.5px;font-weight:600}
+.server-banner code{background:rgba(0,0,0,.07);padding:2px 7px;border-radius:6px;font-size:12.5px}
+.server-banner button{border:0;background:#fff;color:var(--red);padding:7px 15px;border-radius:99px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
+ .db-info{font-size:12.5px;color:var(--text-3);margin-bottom:12px}
+.notif-status{font-size:11.5px;color:var(--text-3);margin-top:3px;font-weight:500}
+.notif-status.ok{color:#1E9E7E}
+.notif-status.bad{color:var(--red)}
+.notif-test-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;font-size:13px;color:var(--text-2);font-weight:600;border-bottom:1px dashed var(--border)}
+/* ===== Responsive ===== */
+@media (max-width:900px){
+  #app{flex-direction:column}
+  .sidebar{position:static;width:100%;flex-direction:row;align-items:center;padding:10px 12px;border-right:0;border-bottom:1px solid var(--border);gap:8px}
+  .logo{padding:0;margin-right:4px}
+  .logo-text{display:none}
+  .nav{flex-direction:row;overflow-x:auto;gap:2px}
+  .nav-item{padding:8px 12px;font-size:13px;white-space:nowrap}
+  .nav-item .nav-ico{font-size:15px}
+  .sidebar-bottom{flex-direction:row;align-items:center;border-top:0;padding:0;gap:6px}
+  .mini-timer{padding:8px 10px}
+  .theme-toggle span{display:none}
+  .main{margin-left:0;padding:20px 16px 60px}
+  .side-groups{display:none}
+  .grid-2{grid-template-columns:1fr}
+  .ring-wrap{width:270px;height:270px}
+  .ring-time{font-size:48px}
+  .task-actions{display:flex}
+  .add-form{flex-direction:column}
+  .add-form .btn{width:100%}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="logo"><span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 2"/><path d="M9.5 2.5h5"/></svg></span><span class="logo-text">专注清单</span></div>
+    <nav class="nav">
+      <div class="nav-item active" data-view="tasks"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>今日任务</div>
+      <div class="nav-item" data-view="timer"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>番茄钟</div>
+      <div class="nav-item" data-view="stats"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 20v-6M12 20V8M17 20v-9"/></svg></span>统计</div>
+      <div class="nav-item" data-view="review"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>每周回顾</div>
+      <div class="nav-item" data-view="settings"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg></span>设置</div>
+    </nav>
+    <div class="side-groups" id="sideGroups">
+      <div class="sg-head">任务分组 <span class="sg-add" id="sideNewGroup" title="新建分组">＋</span></div>
+      <div id="sideGroupList"></div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="mini-timer" id="miniTimer" title="查看番茄钟">
+        <span class="mini-dot mode-work" id="miniDot"></span>
+        <div><div class="mini-time" id="miniTime">25:00</div><div class="mini-state" id="miniState">待机</div></div>
+      </div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><h1 id="viewTitle">今日任务</h1><p class="sub" id="viewSub"></p></div>
+    </header>
+    <div class="server-banner" id="serverBanner" style="display:none">
+      <span>未连接到本地数据库（SQLite）服务，数据无法保存。</span>
+      <span class="sb-cmd">请先在应用目录运行 <code>python3 server.py</code>，然后访问 <code>http://localhost:8765</code></span>
+      <button id="retryBtn">重试连接</button>
+    </div>
+
+    <!-- 今日任务 -->
+    <section class="view active" id="view-tasks">
+      <div class="card add-card">
+        <form class="add-form" id="addForm" autocomplete="off">
+          <input type="text" id="addTitle" placeholder="添加一个任务，回车快速创建…" maxlength="80">
+          <button type="submit" class="btn primary">添加任务</button>
+        </form>
+        <button class="btn link sm add-opts-toggle" id="addOptsToggle" type="button">更多选项 ▾</button>
+        <div class="add-extras" id="addExtrasWrap" style="display:none">
+          <label>预计 <select id="addPomos">
+            <option value="1">1 个</option><option value="2" selected>2 个</option><option value="3">3 个</option>
+            <option value="4">4 个</option><option value="6">6 个</option><option value="8">8 个</option>
+          </select></label>
+          <label>优先级 <select id="addPriority">
+            <option value="2">高</option><option value="1" selected>中</option><option value="0">低</option>
+          </select></label>
+          <label>截止 <input type="date" id="addDue"></label>
+          <label>备注 <input type="text" id="addNotes" placeholder="可选" maxlength="100" style="width:170px"></label>
+          <label>分组 <select id="addGroup"></select></label>
+        </div>
+      </div>
+      <div class="group-bar" id="groupBar">
+        <div class="group-chips" id="groupChips"></div>
+        <div class="group-actions">
+          <button class="icon-btn" id="newGroupBtn" title="新建分组"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="icon-btn" id="manageGroupBtn" title="管理分组"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg></button>
+        </div>
+      </div>
+      <div class="task-summary" id="taskSummary"></div>
+      <div class="task-list" id="taskList"></div>
+      <div class="done-section" id="doneSection">
+        <div class="done-head" id="doneHead"><span class="arrow">▼</span><span id="doneLabel">已完成 (0)</span></div>
+        <div class="task-list" id="doneList"></div>
+      </div>
+    </section>
+
+    <!-- 番茄钟 -->
+    <section class="view" id="view-timer">
+      <div class="timer-wrap">
+        <div class="mode-tabs" id="modeTabs">
+          <button class="mode-tab active mode-work" data-mode="work">专注</button>
+          <button class="mode-tab mode-short" data-mode="short">短休息</button>
+          <button class="mode-tab mode-long" data-mode="long">长休息</button>
+        </div>
+        <div class="ring-wrap" id="ringWrap" title="点击开始/暂停">
+          <svg class="ring" viewBox="0 0 320 320">
+            <circle class="ring-bg" cx="160" cy="160" r="140"></circle>
+            <circle class="ring-fg" id="ringFg" cx="160" cy="160" r="140"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-time" id="timeDisplay">25:00</div>
+            <div class="ring-state" id="stateLabel">准备开始</div>
+          </div>
+        </div>
+        <div class="ring-hint">点击圆环开始 / 暂停 · 快捷键：空格</div>
+        <div class="task-select-wrap">
+          <span class="mini-label">正在专注的任务</span>
+          <select id="timerTaskSelect"></select>
+        </div>
+        <div class="timer-controls">
+          <button class="btn ghost" id="resetBtn">↺ 重置</button>
+          <button class="btn primary big" id="startBtn">▶ 开始</button>
+          <button class="btn ghost" id="skipBtn">跳过 ›</button>
+        </div>
+        <div class="timer-stats" id="timerStats"></div>
+        <div class="notif-banner" id="notifBanner" style="display:none">
+          <span>开启桌面通知，番茄钟完成时弹窗提醒你</span>
+          <button id="notifEnableBtn">立即开启</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 统计 -->
+    <section class="view" id="view-stats">
+      <div class="stat-cards" id="statCards"></div>
+      <div class="grid-2">
+        <div class="card"><h3>最近 7 天专注时长</h3><div class="chart" id="chart7dMinutes"></div></div>
+        <div class="card"><h3>最近 7 天番茄数</h3><div class="chart" id="chart7dPomos"></div></div>
+      </div>
+      <div class="card"><h3>本周目标</h3><div id="weeklyGoalBox"></div></div>
+      <div class="card"><h3>任务专注排行（全部时间）</h3><div id="taskRank"></div></div>
+    </section>
+
+    <!-- 每周回顾 -->
+    <section class="view" id="view-review">
+      <div class="review-head">
+        <button class="btn ghost" id="prevWeekBtn">‹ 上一周</button>
+        <div class="review-week">
+          <div class="review-range" id="reviewRange"></div>
+          <button class="btn link" id="thisWeekBtn">回到本周</button>
+        </div>
+        <button class="btn ghost" id="nextWeekBtn">下一周 ›</button>
+      </div>
+      <div class="stat-cards" id="reviewCards"></div>
+      <div class="card">
+        <div class="ai-head">
+          <h3>AI 分析 · 本周做了什么</h3>
+          <div class="row" style="gap:8px">
+            <button class="btn ghost sm" id="aiCopyBtn">复制</button>
+            <button class="btn ghost sm" id="aiRegenBtn">生成 AI 分析</button>
+          </div>
+        </div>
+        <div class="ai-text" id="aiText"></div>
+        <div class="ai-note" id="aiNote">当前：本地智能分析 · 在设置中配置大模型 API 可升级为在线 AI</div>
+      </div>
+      <div class="card"><h3>每日专注</h3><div class="chart" id="reviewChart"></div></div>
+      <div class="card"><h3>每日明细</h3><div id="dayList"></div></div>
+      <div class="card"><h3>本周任务明细</h3><div id="weekTaskList"></div></div>
+      <div class="card"><h3>本周小结</h3><div id="insights"></div></div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="view" id="view-settings">
+      <div class="card">
+        <h3>番茄钟时长（分钟）</h3>
+        <div class="setting-grid">
+          <label>专注时长 <input type="number" id="setWork" min="1" max="120"></label>
+          <label>短休息 <input type="number" id="setShort" min="1" max="60"></label>
+          <label>长休息 <input type="number" id="setLong" min="1" max="120"></label>
+          <label>长休息间隔（番茄数）<input type="number" id="setLongInterval" min="2" max="12"></label>
+          <label>每周番茄目标 <input type="number" id="setWeeklyGoal" min="0" max="200"></label>
+        </div>
+        <button class="btn primary" id="saveTimingBtn">保存时长设置</button>
+      </div>
+      <div class="card">
+        <h3>提醒与自动</h3>
+        <div class="toggle-row"><span>提示音效</span><label class="switch"><input type="checkbox" id="setSound"><span></span></label></div>
+        <div class="toggle-row">
+          <div>
+            <div>桌面通知（完成时系统弹窗）</div>
+            <div class="notif-status" id="notifStatus"></div>
+          </div>
+          <label class="switch"><input type="checkbox" id="setNotif"><span></span></label>
+        </div>
+        <div class="notif-test-row">
+          <span>想确认系统弹窗能不能弹？</span>
+          <button class="btn ghost sm" id="testNotifBtn">发送测试弹窗</button>
+        </div>
+        <div class="toggle-row"><span>专注结束后自动开始休息</span><label class="switch"><input type="checkbox" id="setAutoBreak"><span></span></label></div>
+        <div class="toggle-row"><span>休息结束后自动开始专注</span><label class="switch"><input type="checkbox" id="setAutoWork"><span></span></label></div>
+        <div class="toggle-row"><span>深色模式</span><label class="switch"><input type="checkbox" id="setDark"><span></span></label></div>
+      </div>
+      <div class="card">
+        <h3>AI 分析（可选）</h3>
+        <div class="setting-grid">
+          <label>Base URL <input type="text" id="aiBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off"></label>
+          <label>API Key <input type="password" id="aiApiKey" placeholder="sk-..." autocomplete="off"></label>
+          <label>模型 <input type="text" id="aiModel" placeholder="gpt-4o-mini / deepseek-chat" autocomplete="off"></label>
+        </div>
+        <div class="row" style="gap:8px">
+          <button class="btn primary" id="saveAiBtn">保存 AI 配置</button>
+          <button class="btn ghost" id="testAiBtn">测试连接</button>
+        </div>
+        <div class="db-info" style="margin-top:10px">配置后，每周回顾的「AI 分析」会调用真实大模型生成；未配置时使用本地智能分析。密钥只保存在本机。</div>
+      </div>
+      <div class="card">
+        <h3>数据</h3>
+        <div class="db-info" id="dbInfo">存储方式：本地 SQLite 数据库</div>
+        <div class="row">
+          <button class="btn ghost" id="exportBtn">导出数据 (JSON)</button>
+          <button class="btn danger" id="clearBtn">清除所有数据</button>
+        </div>
+      </div>
+      <div class="card about">专注清单 · 番茄工作法 · v1.1 · 数据保存在本机 SQLite 数据库（focuslist.db）</div>
+    </section>
+  </main>
+</div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script>
+
+"use strict";
+/* ============ Helpers ============ */
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const pad=n=>String(n).padStart(2,"0");
+const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+const fmtClock=s=>{s=Math.max(0,Math.round(s));return pad(Math.floor(s/60))+":"+pad(s%60)};
+const fmtDate=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const todayKey=()=>fmtDate(new Date());
+const startOfDay=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const weekStart=d=>{const x=startOfDay(d);const off=(x.getDay()+6)%7;return addDays(x,-off)};
+const isSameDay=(a,b)=>fmtDate(a)===fmtDate(b);
+function fmtMins(m){
+  m=Math.round(m);
+  if(m<60) return m+" 分钟";
+  const h=Math.floor(m/60), r=m%60;
+  return r? h+" 小时 "+r+" 分钟" : h+" 小时";
+}
+function fmtDuration(m){
+  m=Math.round(m);
+  if(m<60) return m+" 分钟";
+  const h=Math.floor(m/60), r=m%60;
+  return r? h+" 小时 "+r+" 分" : h+" 小时";
+}
+
+const PRI_NAME={2:"高",1:"中",0:"低"};
+const ICONS={
+  play:'<path d="M8 5v14l11-7z"/>',
+  edit:'<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+  del:'<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/><path d="M10 11v6M14 11v6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>'
+};
+function ic(name,size){
+  return "<svg class='ico' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='width:"+(size||14)+"px;height:"+(size||14)+"px'>"+(ICONS[name]||"")+"</svg>";
+}
+
+const MODE_NAME={work:"专注",short:"短休息",long:"长休息"};
+function stateText(){
+  if(timer.status==="running")return timer.mode==="work"?"专注中，加油！":"休息中，放松一下吧";
+  if(timer.status==="paused")return timer.mode==="work"?"已暂停":"休息已暂停";
+  return "准备开始";
+}
+
+/* ============ Store (SQLite via local server) ============ */
+const LS_KEY="focuslist.v1";
+const META_KEY="focuslist.meta";
+const DEFAULTS={
+  settings:{work:25,short:5,long:15,longInterval:4,weeklyGoal:20,sound:true,notifications:false,autoBreak:false,autoWork:false,dark:false},
+  tasks:[],sessions:[],groups:[],reviewOffset:0,currentTaskId:null,groupFilter:"all",welcomed:false
+};
+let state=null;
+let serverOk=false;
+let lastSynced=null;
+let saveQueue=Promise.resolve();
+function loadMeta(){try{return JSON.parse(localStorage.getItem(META_KEY))||{}}catch(e){return{}}}
+function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify({welcomed:state.welcomed,reviewOffset:state.reviewOffset,currentTaskId:state.currentTaskId,groupFilter:state.groupFilter}))}catch(e){}}
+const canonTask=t=>({id:t.id,title:t.title,notes:t.notes,priority:t.priority,estimate:t.estimate,due:t.due,created:t.created,completed:!!t.completed,completedAt:t.completedAt,pomos:t.pomos,lastFocused:t.lastFocused,groupId:t.groupId||""});
+const canonSession=s=>({id:s.id,type:s.type,taskId:s.taskId,start:s.start,end:s.end,mins:s.mins});
+const canonGroup=g=>({id:g.id,name:g.name,color:g.color,sort:g.sort||0});
+function indexState(data){
+  const tasks={},sessions={},groups={};
+  (data.tasks||[]).forEach(t=>tasks[t.id]=canonTask(t));
+  (data.sessions||[]).forEach(s=>sessions[s.id]=canonSession(s));
+  (data.groups||[]).forEach(g=>groups[g.id]=canonGroup(g));
+  return {tasks,sessions,groups,settings:data.settings||{}};
+}
+function mergeState(raw){
+  const base=JSON.parse(JSON.stringify(DEFAULTS));
+  base.settings=Object.assign({},DEFAULTS.settings,(raw&&raw.settings)||{});
+  base.tasks=Array.isArray(raw&&raw.tasks)?raw.tasks:[];
+  base.sessions=Array.isArray(raw&&raw.sessions)?raw.sessions:[];
+  base.groups=Array.isArray(raw&&raw.groups)?raw.groups:[];
+  const meta=loadMeta();
+  base.reviewOffset=typeof meta.reviewOffset==="number"?meta.reviewOffset:0;
+  base.currentTaskId=meta.currentTaskId||null;
+  base.groupFilter=meta.groupFilter||"all";
+  base.welcomed=!!meta.welcomed;
+  return base;
+}
+async function load(){
+  let raw=null;
+  try{raw=JSON.parse(localStorage.getItem(LS_KEY))}catch(e){}
+  let serverData=null;
+  try{
+    const r=await fetch("/api/state",{cache:"no-store"});
+    if(r.ok)serverData=await r.json();
+  }catch(e){}
+  if(serverData&&serverData.tasks){
+    const hasServer=(serverData.tasks.length||serverData.sessions.length||Object.keys(serverData.settings).length);
+    if(!hasServer&&raw){
+      const migrated={tasks:raw.tasks||[],sessions:raw.sessions||[],settings:raw.settings||{}};
+      try{await fetch("/api/state",{method:"POST",headers:{"Content-Type":"application/json","X-Client-Version":"2"},body:JSON.stringify(migrated)})}catch(e){}
+      serverData=migrated;
+    }
+    state=mergeState(serverData);
+    lastSynced=indexState(serverData);
+    serverOk=true;
+  }else{
+    state=mergeState(raw||null);
+    lastSynced=indexState({tasks:[],sessions:[],settings:{}});
+    serverOk=false;
+  }
+  updateServerBanner();
+}
+function save(){
+  saveMeta();
+  const cur=indexState({tasks:state.tasks,sessions:state.sessions,groups:state.groups,settings:state.settings});
+  const ops=[];
+  for(const id in cur.tasks){
+    if(!lastSynced.tasks[id]||JSON.stringify(lastSynced.tasks[id])!==JSON.stringify(cur.tasks[id])){
+      ops.push(fetch("/api/task",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(cur.tasks[id])}));
+    }
+  }
+  for(const id in lastSynced.tasks){
+    if(!cur.tasks[id])ops.push(fetch("/api/task?id="+encodeURIComponent(id),{method:"DELETE"}));
+  }
+  for(const id in cur.sessions){
+    if(!lastSynced.sessions[id])ops.push(fetch("/api/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(cur.sessions[id])}));
+  }
+  for(const id in cur.groups){
+    if(!lastSynced.groups[id]||JSON.stringify(lastSynced.groups[id])!==JSON.stringify(cur.groups[id])){
+      ops.push(fetch("/api/group",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(cur.groups[id])}));
+    }
+  }
+  for(const id in lastSynced.groups){
+    if(!cur.groups[id])ops.push(fetch("/api/group?id="+encodeURIComponent(id),{method:"DELETE"}));
+  }
+  if(JSON.stringify(cur.settings)!==JSON.stringify(lastSynced.settings)){
+    ops.push(fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(cur.settings)}));
+  }
+  if(ops.length){
+    const snapshot=cur;
+    saveQueue=saveQueue.then(()=>Promise.all(ops)).then(()=>{lastSynced=snapshot}).catch(()=>{toast("保存失败：数据库服务未连接")});
+  }else{
+    lastSynced=cur;
+  }
+}
+function updateServerBanner(){const el=$("#serverBanner");if(el)el.style.display=serverOk?"none":"flex"}
+async function fetchDbInfo(){
+  try{
+    const r=await fetch("/api/info",{cache:"no-store"});
+    if(r.ok){const info=await r.json();const el=$("#dbInfo");if(el)el.textContent="存储方式：本地 SQLite 数据库 · "+info.db}
+  }catch(e){}
+}
+
+/* ============ Timer engine ============ */
+let timer={mode:"work",status:"idle",remaining:DEFAULTS.settings.work*60,endAt:0,startedAt:0,pomosInRun:0,tickId:null};
+const RING_C=2*Math.PI*140;
+const durOf=()=>{
+  const s=state.settings;
+  return {work:s.work*60,short:s.short*60,long:s.long*60}[timer.mode];
+};
+function resetTimer(mode){
+  if(timer.tickId){clearInterval(timer.tickId);timer.tickId=null}
+  timer.mode=mode||timer.mode;
+  timer.status="idle";
+  timer.remaining=durOf();
+  timer.endAt=0;
+  renderTimerView();
+}
+function startTimer(){
+  if(timer.status==="running")return;
+  if(timer.remaining<=0)timer.remaining=durOf();
+  if(timer.status==="idle")timer.startedAt=Date.now()-(durOf()-timer.remaining)*1000;
+  timer.endAt=Date.now()+timer.remaining*1000;
+  timer.status="running";
+  if(timer.tickId)clearInterval(timer.tickId);
+  timer.tickId=setInterval(tick,250);
+  renderTimerView();
+}
+function pauseTimer(){
+  if(timer.status!=="running")return;
+  timer.remaining=Math.max(0,(timer.endAt-Date.now())/1000);
+  timer.status="paused";
+  if(timer.tickId){clearInterval(timer.tickId);timer.tickId=null}
+  renderTimerView();
+}
+function tick(){
+  const rem=Math.max(0,(timer.endAt-Date.now())/1000);
+  timer.remaining=rem;
+  if(rem<=0){completeSession();return}
+  updateTimerUI();
+}
+function updateTimerUI(){
+  const el=$("#timeDisplay");
+  if(el){el.textContent=fmtClock(timer.remaining);document.title=fmtClock(timer.remaining)+" · "+MODE_NAME[timer.mode]+" - 专注清单"}
+  const fg=$("#ringFg");
+  if(fg){const total=durOf();fg.style.strokeDashoffset=RING_C*(1-timer.remaining/total)}
+  const st=$("#stateLabel");
+  if(st){st.textContent=stateText()}
+  renderMiniTimer();
+}
+function completeSession(){
+  if(timer.tickId){clearInterval(timer.tickId);timer.tickId=null}
+  const s=state.settings;
+  const mins={work:s.work,short:s.short,long:s.long}[timer.mode];
+  const end=Date.now();
+  const session={id:uid(),type:timer.mode,taskId:timer.mode==="work"?state.currentTaskId:null,start:timer.startedAt||end-mins*60000,end,mins};
+  state.sessions.push(session);
+  let task=null;
+  if(timer.mode==="work"){
+    timer.pomosInRun++;
+    task=state.tasks.find(t=>t.id===state.currentTaskId);
+    if(task){task.pomos=(task.pomos||0)+1;task.lastFocused=end}
+  }
+  timer.status="idle";timer.remaining=0;
+  save();
+  renderAll();
+  if(s.sound)chime(timer.mode==="work");
+  if(s.notifications)notify(
+    timer.mode==="work"?"专注完成！":(MODE_NAME[timer.mode]+"结束"),
+    timer.mode==="work"
+      ?(task?("「"+task.title+"」已完成 1 个番茄钟"):"已完成 1 个番茄钟")
+      :"休息结束，准备好继续专注了吗？"
+  );
+  showCompletionModal(task);
+}
+function showCompletionModal(task){
+  const s=state.settings;
+  const isWork=timer.mode==="work";
+  const isLongBreak=timer.mode==="work"&&timer.pomosInRun>=s.longInterval;
+  if(isWork){
+    const title=isLongBreak?"干得漂亮！完成一轮专注":"专注完成！";
+    const body=task
+      ? "「"+task.title+"」已完成 <b>"+task.pomos+"</b> 个番茄钟"
+      : "已完成 <b>1</b> 个番茄钟";
+    const auto = isLongBreak
+      ? {label:s.long+" 分钟后开始长休息",fn:()=>{resetTimer("long");startTimer()}}
+      : {label:s.short+" 分钟后开始短休息",fn:()=>{resetTimer("short");startTimer()}};
+    const actions=[];
+    if(isLongBreak){
+      actions.push({text:"开始长休息",cls:"primary",fn:()=>{resetTimer("long");startTimer()}});
+    }else{
+      actions.push({text:"开始短休息",cls:"primary",fn:()=>{resetTimer("short");startTimer()}});
+    }
+    actions.push({text:"再专注一个",cls:"soft",fn:()=>{resetTimer("work");startTimer()}});
+    actions.push({text:"知道了",cls:"ghost",fn:null});
+    showModal({title,body:body+"<br>休息一下，让大脑放松片刻",actions,countdown:s.autoBreak?auto:null});
+  }else{
+    const title=MODE_NAME[timer.mode]+"结束";
+    const body="休息结束，准备好迎接下一个番茄了吗？";
+    showModal({
+      title,body,
+      actions:[
+        {text:"▶ 开始专注",cls:"primary",fn:()=>{resetTimer("work");startTimer()}},
+        {text:"再休息一会儿",cls:"soft",fn:()=>{resetTimer(timer.mode);startTimer()}},
+        {text:"知道了",cls:"ghost",fn:null}
+      ],
+      countdown:s.autoWork?{label:"5 秒后自动开始专注",fn:()=>{resetTimer("work");startTimer()}}:null
+    });
+  }
+}
+function skipTimer(){
+  if(timer.status==="running"){pauseTimer();timer.remaining=0;completeSession()}
+  else if(timer.status==="idle"){resetTimer(timer.mode);toast("计时器已重置")}
+}
+function switchMode(mode){
+  if(timer.status==="running")pauseTimer();
+  timer.pomosInRun=(mode==="work")?timer.pomosInRun:0;
+  resetTimer(mode);
+}
+
+/* ============ Sound ============ */
+let audioCtx=null;
+function chime(up=true){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended")audioCtx.resume();
+    const notes=up?[523.25,659.25,783.99]:[783.99,659.25,523.25];
+    notes.forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type="sine";o.frequency.value=f;
+      o.connect(g);g.connect(audioCtx.destination);
+      const t=audioCtx.currentTime+i*0.17;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.4,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.65);
+      o.start(t);o.stop(t+0.7);
+    });
+  }catch(e){}
+}
+
+/* ============ Notifications ============ */
+function notify(title,body){
+  if(!("Notification" in window))return;
+  if(Notification.permission==="granted"){
+    try{new Notification(title,{body,icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍅%3C/text%3E%3C/svg%3E"})}catch(e){}
+  }
+}
+function notifState(){
+  if(!("Notification" in window))return {text:"当前浏览器不支持桌面通知",cls:"bad"};
+  if(Notification.permission==="granted")return {text:state.settings.notifications?"已授权，番茄钟完成时会弹出系统通知 ✓":"已授权，打开上方开关后生效 ✓",cls:"ok"};
+  if(Notification.permission==="denied")return {text:"已拒绝：请在浏览器地址栏站点设置中重新允许通知",cls:"bad"};
+  return {text:"未授权：点击上方开关或「发送测试弹窗」授权",cls:""};
+}
+function updateNotifStatus(){
+  const el=$("#notifStatus");
+  if(!el)return;
+  const st=notifState();
+  el.textContent=st.text;
+  el.className="notif-status"+(st.cls?(" "+st.cls):"");
+}
+function testNotification(){
+  if(!("Notification" in window)){toast("当前浏览器不支持桌面通知");return}
+  if(Notification.permission==="granted"){
+    try{new Notification("专注清单 · 测试通知",{body:"这是一条系统弹窗测试，番茄钟完成时会以这种方式提醒你",icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍅%3C/text%3E%3C/svg%3E"})}catch(e){}
+    toast("已发送测试弹窗，请查看屏幕右上角或通知中心");
+  }else if(Notification.permission==="default"){
+    toast("请在弹出的系统询问中点击「允许」");
+    Notification.requestPermission().then(p=>{
+      updateNotifStatus();
+      if(p==="granted"){state.settings.notifications=true;save();$("#setNotif").checked=true;hideNotifBanner();toast("已授权，再点一次「发送测试弹窗」试试")}
+      else toast("未获得授权，系统弹窗无法显示");
+    });
+  }else{
+    updateNotifStatus();
+    toast("通知已被浏览器拒绝：请在地址栏左侧站点设置中重新允许");
+  }
+}
+function requestNotif(){
+  if(!("Notification" in window)){toast("当前浏览器不支持桌面通知");return}
+  Notification.requestPermission().then(p=>{
+    updateNotifStatus();
+    if(p==="granted"){state.settings.notifications=true;save();$("#setNotif").checked=true;toast("桌面通知已开启");hideNotifBanner()}
+    else toast("通知被拒绝，可在浏览器地址栏重新开启");
+  });
+}
+function hideNotifBanner(){$("#notifBanner").style.display="none"}
+
+/* ============ Modal & Toast ============ */
+function showModal(o){
+  const root=$("#modal-root");
+  const overlay=document.createElement("div");
+  overlay.className="overlay";
+  let countText="";
+  let cd=null;
+  const actionsHtml=(o.actions||[]).map(a=>{
+    const cls=a.cls||"ghost";
+    return "<button class='btn "+cls+"' data-act='"+a.text+"'>"+a.text+"</button>";
+  }).join("");
+  overlay.innerHTML="<div class='modal-card'>"
+    +(o.emoji?"<div class='modal-emoji'>"+o.emoji+"</div>":"")
+    +"<div class='modal-title'>"+o.title+"</div>"
+    +"<div class='modal-body'>"+o.body+"</div>"
+    +"<div class='modal-count' id='modalCount'>"+(countText||"&nbsp;")+"</div>"
+    +"<div class='modal-actions'>"+actionsHtml+"</div>"
+    +"</div>";
+  root.appendChild(overlay);
+  const close=()=>{if(cd){clearInterval(cd);cd=null}overlay.remove()};
+  overlay.addEventListener("click",e=>{
+    const sw=e.target.closest(".cswatch");
+    if(sw){
+      pickedColor=sw.dataset.c;
+      overlay.querySelectorAll(".cswatch").forEach(x=>x.classList.toggle("sel",x===sw));
+      return;
+    }
+    const mg=e.target.closest("[data-mg]");
+    if(mg){
+      const parts=mg.dataset.mg.split(":");
+      const g=groupById(parts[1]);
+      close();
+      if(parts[0]==="edit"&&g)editGroup(g.id);
+      else if(parts[0]==="del"&&g)removeGroup(g);
+      return;
+    }
+    if(e.target===overlay)close();
+    if(e.target.tagName==="BUTTON"){
+      const fn=(o.actions||[]).find(a=>a.text===e.target.getAttribute("data-act"));
+      if(fn&&fn.fn){
+        try{fn.fn()}catch(err){console.error(err);toast("操作失败："+err.message)}
+      }
+      close();
+    }
+  });
+  if(o.countdown){
+    let n=5;
+    const mc=$("#modalCount");
+    if(mc)mc.textContent=o.countdown.label+"（"+n+"）";
+    cd=setInterval(()=>{
+      n--;
+      if(n<=0){close();o.countdown.fn();return}
+      if(mc)mc.textContent=o.countdown.label+"（"+n+"）";
+    },1000);
+  }
+}
+function toast(msg){
+  const root=$("#toast-root");
+  const el=document.createElement("div");
+  el.className="toast";el.textContent=msg;
+  root.appendChild(el);
+  setTimeout(()=>{el.style.opacity="0";el.style.transition=".3s";setTimeout(()=>el.remove(),320)},2200);
+}
+
+
+/* ============ Views / navigation ============ */
+let currentView="tasks";
+const VIEW_TITLE={tasks:"今日任务",timer:"番茄钟",stats:"统计",review:"每周回顾",settings:"设置"};
+function switchView(v){
+  currentView=v;
+  $$(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.view===v));
+  $$(".view").forEach(sec=>sec.classList.toggle("active",sec.id==="view-"+v));
+  $("#viewTitle").textContent=VIEW_TITLE[v];
+  renderSub();
+  if(v==="tasks")renderTasks();
+  if(v==="timer")renderTimerView();
+  if(v==="stats")renderStats();
+  if(v==="review")renderReview();
+  if(v==="settings")renderSettings();
+  window.scrollTo(0,0);
+}
+function renderSub(){
+  const el=$("#viewSub");
+  if(currentView==="tasks"){
+    const act=state.tasks.filter(t=>!t.completed).length;
+    const done=state.tasks.length-act;
+    el.textContent=act?("还有 "+act+" 个任务待完成 · 已完成 "+done+" 个"):(done?"今天没有待办啦，享受生活吧":"从添加一个任务开始你的专注之旅吧");
+  }else if(currentView==="timer"){
+    el.textContent="选择一个任务，开始你的番茄钟";
+  }else if(currentView==="stats"){
+    el.textContent="用数据见证每一次专注";
+  }else if(currentView==="review"){
+    el.textContent="复盘这一周的专注时光";
+  }else{
+    el.textContent="自定义你的番茄工作法";
+  }
+}
+
+/* ============ Tasks ============ */
+function sortedTasks(){
+  const pri=t=>t.priority||1;
+  return state.tasks.slice().sort((a,b)=>{
+    if(pri(a)!==pri(b))return pri(b)-pri(a);
+    return (a.created||0)-(b.created||0);
+  });
+}
+function dueLabel(t){
+  if(!t.due)return "";
+  const today=startOfDay(new Date());
+  const due=new Date(t.due+"T23:59:59");
+  if(due<today)return "<span class='chip overdue'>逾期 "+Math.ceil((today-due)/86400000)+" 天</span>";
+  if(fmtDate(due)===todayKey())return "<span class='chip'>今天截止</span>";
+  return "<span class='chip'>"+String(t.due).slice(5).replace("-","/")+" 截止</span>";
+}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function taskItemHtml(t){
+  const pri=t.priority||1;
+  const priColor=pri===2?"var(--red)":pri===1?"var(--amber)":"#9CA3AF";
+  const pomoChip=(t.pomos||0)>=t.estimate
+    ? "<span class='chip full'>"+ic("check")+" "+t.pomos+"/"+t.estimate+" 完成</span>"
+    : "<span class='chip pomo'>"+ic("clock")+" "+t.pomos+"/"+t.estimate+"</span>";
+  return "<div class='task-item "+(t.completed?"done":"")+"' data-id='"+t.id+"' style='border-left:3px solid "+priColor+"'>"
+    +"<div class='check'>✓</div>"
+    +"<div class='task-main'>"
+    +"<div class='task-title'>"+esc(t.title)+"</div>"
+    +"<div class='task-meta'>"
+    +pomoChip
+    +dueLabel(t)
+    +(t.completed?"<span class='chip'>"+ic("check")+" 完成</span>":"")
+    +"</div>"
+    +(t.notes?"<div class='task-note'>"+esc(t.notes)+"</div>":"")
+    +"</div>"
+    +"<div class='task-actions'>"
+    +(t.completed?"":"<button class='icon-btn' data-act='focus' title='开始专注'>"+ic("play")+"</button>")
+    +"<button class='icon-btn' data-act='edit' title='编辑'>"+ic("edit")+"</button>"
+    +"<button class='icon-btn del' data-act='del' title='删除'>"+ic("del")+"</button>"
+    +"</div>"
+    +"</div>";
+}
+function filterTasksByGroup(arr){
+  if(state.groupFilter==="all")return arr;
+  if(state.groupFilter==="inbox")return arr.filter(t=>!t.groupId);
+  return arr.filter(t=>t.groupId===state.groupFilter);
+}
+function groupSectionHtml(name,color,tasks){
+  return "<div class='group-section-head'><i class='gdot' style='background:"+color+"'></i>"+esc(name)+" <span class='gcount'>"+tasks.length+"</span></div>"
+    +tasks.map(taskItemHtml).join("");
+}
+function renderTasks(){
+  const acts=sortedTasks().filter(t=>!t.completed);
+  const dones=state.tasks.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+  const list=$("#taskList"), doneList=$("#doneList");
+  renderGroupBar();
+  const filtered=filterTasksByGroup(acts);
+  if(state.groupFilter==="all"){
+    const inbox=filtered.filter(t=>!t.groupId);
+    const parts=[];
+    if(inbox.length)parts.push(groupSectionHtml("收件箱","#9CA3AF",inbox));
+    sortedGroups().forEach(g=>{
+      const gt=filtered.filter(t=>t.groupId===g.id);
+      if(gt.length)parts.push(groupSectionHtml(g.name,g.color,gt));
+    });
+    list.innerHTML=parts.length?parts.join(""):"<div class='chart-empty'>暂无进行中的任务，先添加一个吧</div>";
+  }else{
+    list.innerHTML=filtered.length?filtered.map(taskItemHtml).join(""):"<div class='chart-empty'>该分组暂无任务</div>";
+  }
+  doneList.innerHTML=dones.length?dones.map(taskItemHtml).join(""):"<div class='chart-empty'>还没有完成的任务</div>";
+  const doneSec=$("#doneSection");
+  doneSec.style.display=dones.length?"block":"none";
+  $("#doneLabel").textContent="已完成 ("+dones.length+")";
+  const todaySess=state.sessions.filter(s=>s.type==="work"&&isSameDay(new Date(s.end),new Date()));
+  const todayDone=dones.filter(t=>isSameDay(new Date(t.completedAt||0),new Date())).length;
+  $("#taskSummary").innerHTML=
+    "<span>进行中 <b>"+acts.length+"</b></span>"
+    +"<span>今日番茄 <b>"+todaySess.length+"</b></span>"
+    +"<span>今日专注 <b>"+fmtDuration(todaySess.reduce((a,b)=>a+b.mins,0))+"</b></span>"
+    +"<span>今日完成 <b>"+todayDone+"</b></span>";
+}
+function addTask(e){
+  e.preventDefault();
+  const title=$("#addTitle").value.trim();
+  if(!title)return;
+  const t={id:uid(),title,notes:$("#addNotes").value.trim(),priority:+$("#addPriority").value,estimate:+$("#addPomos").value,due:$("#addDue").value||"",created:Date.now(),completed:false,completedAt:0,pomos:0,lastFocused:0,groupId:$("#addGroup").value||""};
+  state.tasks.push(t);
+  save();
+  $("#addTitle").value="";$("#addNotes").value="";$("#addDue").value="";$("#addGroup").value="";
+  renderTasks();renderSub();
+  toast("已添加任务");
+  $("#addTitle").focus();
+}
+function toggleTask(id){
+  const t=state.tasks.find(x=>x.id===id);
+  if(!t)return;
+  t.completed=!t.completed;
+  t.completedAt=t.completed?Date.now():0;
+  save();renderTasks();renderSub();renderTimerView();
+  if(t.completed)toast("完成任务：「"+t.title+"」");
+}
+function editTask(id){
+  const t=state.tasks.find(x=>x.id===id);
+  if(!t)return;
+  showModal({
+    title:"编辑任务",body:
+    "<div style='display:flex;flex-direction:column;gap:12px;text-align:left'>"
+    +"<input type='text' id='editTitle' value='"+esc(t.title)+"' maxlength='80' style='width:100%'>"
+    +"<label class='field'>备注<input type='text' id='editNotes' value='"+esc(t.notes||"")+"' maxlength='100'></label>"
+    +"<label class='field'>预计番茄<select id='editPomos'>"
+    +[1,2,3,4,6,8].map(n=>"<option value='"+n+"'"+(n===t.estimate?" selected":"")+">"+n+" 个</option>").join("")
+    +"</select></label>"
+    +"<label class='field'>优先级<select id='editPriority'>"
+    +"<option value='2'"+(t.priority===2?" selected":"")+">高</option>"
+    +"<option value='1'"+(t.priority===1?" selected":"")+">中</option>"
+    +"<option value='0'"+(t.priority===0?" selected":"")+">低</option>"
+    +"</select></label>"
+    +"<label class='field'>截止日期<input type='date' id='editDue' value='"+(t.due||"")+"'></label>"
+    +"<label class='field'>分组<select id='editGroup'>"+groupOptions(t.groupId||"")+"</select></label>"
+    +"</div>",
+    actions:[
+      {text:"保存",cls:"primary",fn:()=>{
+        const title=$("#editTitle").value.trim();
+        if(!title){toast("任务名不能为空");return}
+        t.title=title;t.notes=$("#editNotes").value.trim();t.estimate=+$("#editPomos").value;t.priority=+$("#editPriority").value;t.due=$("#editDue").value||"";t.groupId=$("#editGroup").value||"";
+        save();renderTasks();renderTimerView();toast("已保存");
+      }},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
+  });
+  setTimeout(()=>{const el=$("#editTitle");if(el){el.focus();el.select()}},50);
+}
+function deleteTask(id){
+  const t=state.tasks.find(x=>x.id===id);
+  if(!t)return;
+  showModal({
+    title:"删除任务",body:"确定要删除「"+esc(t.title)+"」吗？相关记录不会被删除，但无法恢复。",
+    actions:[
+      {text:"删除",cls:"danger",fn:()=>{
+        state.tasks=state.tasks.filter(x=>x.id!==id);
+        if(state.currentTaskId===id)state.currentTaskId=null;
+        save();renderTasks();renderTimerView();toast("已删除");
+      }},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
+  });
+}
+/* ============ Task groups ============ */
+const GROUP_COLORS=["#FF5A3C","#FF8A2B","#F0A72A","#2FBF9B","#4A8BFF","#8B5CF6","#EC4899","#9CA3AF"];
+let pickedColor=GROUP_COLORS[0];
+function sortedGroups(){return state.groups.slice().sort((a,b)=>(a.sort||0)-(b.sort||0)||(a.id<b.id?-1:1))}
+function groupById(id){return state.groups.find(g=>g.id===id)}
+function groupOptions(sel){return '<option value="">收件箱</option>'+sortedGroups().map(g=>'<option value="'+g.id+'"'+(sel===g.id?" selected":"")+'>'+esc(g.name)+'</option>').join("")}
+function activeCountOf(gid){return state.tasks.filter(t=>!t.completed&&(gid?t.groupId===gid:!t.groupId)).length}
+function renderGroupBar(){
+  const chips=$("#groupChips");
+  if(!chips)return;
+  const total=state.tasks.filter(t=>!t.completed).length;
+  const items=[
+    {id:"all",name:"全部",color:"#FF5A3C",n:total},
+    {id:"inbox",name:"收件箱",color:"#9CA3AF",n:activeCountOf("")},
+    ...sortedGroups().map(g=>({id:g.id,name:g.name,color:g.color,n:activeCountOf(g.id)}))
+  ];
+  chips.innerHTML=items.map(it=>'<span class="gchip-bar'+(state.groupFilter===it.id?" active":"")+'" data-g="'+it.id+'"><i class="gdot" style="background:'+it.color+'"></i>'+esc(it.name)+'<span class="gcount">'+it.n+'</span></span>').join("");
+  const sel=$("#addGroup");
+  if(sel)sel.innerHTML=groupOptions();
+}
+function renderGroups(){
+  const el=$("#sideGroupList");
+  if(!el)return;
+  const total=state.tasks.filter(t=>!t.completed).length;
+  const items=[
+    {id:"all",name:"全部任务",color:"#FF5A3C",n:total},
+    {id:"inbox",name:"收件箱",color:"#9CA3AF",n:activeCountOf("")},
+    ...sortedGroups().map(g=>({id:g.id,name:g.name,color:g.color,n:activeCountOf(g.id)}))
+  ];
+  el.innerHTML=items.map(it=>{
+    const custom=it.id!=="all"&&it.id!=="inbox";
+    return "<div class='sg-item"+(state.groupFilter===it.id?" active":"")+"' data-g='"+it.id+"'>"
+      +"<span class='gdot' style='background:'+it.color+'></span>"
+      +"<span class='sg-name'>"+esc(it.name)+"</span>"
+      +"<span class='sg-count'>"+it.n+"</span>"
+      +(custom?"<span class='sg-item-act'>"
+        +"<button class='sg-act' data-sgact='edit:"+it.id+"' title='重命名'>"+ic("edit",13)+"</button>"
+        +"<button class='sg-act' data-sgact='del:"+it.id+"' title='删除'>"+ic("del",13)+"</button>"
+        +"</span>":"")
+      +"</div>";
+  }).join("");
+}
+function setGroupFilter(g){
+  state.groupFilter=g;
+  save();
+  if(currentView!=="tasks")switchView("tasks");
+  else{renderGroupBar();renderGroups();renderTasks();renderSub()}
+}
+function colorSwatchesHtml(cur){
+  return '<div class="color-row">'+GROUP_COLORS.map(c=>'<span class="cswatch'+(c===cur?" sel":"")+'" data-c="'+c+'" style="background:'+c+'"></span>').join("")+'</div>';
+}
+function newGroup(){
+  pickedColor=GROUP_COLORS[0];
+  showModal({
+    title:"新建分组",
+    body:"<div style='display:flex;flex-direction:column;gap:12px;text-align:left'>"
+      +"<label class='field'>分组名称<input type='text' id='gName' maxlength='20' placeholder='如：工作 / 学习 / 生活'></label>"
+      +"<label class='field' style='color:var(--text-2)'>颜色</label>"
+      +colorSwatchesHtml(pickedColor)
+      +"</div>",
+    actions:[
+      {text:"创建",cls:"primary",fn:()=>{
+        const name=$("#gName").value.trim();
+        if(!name){toast("请输入分组名称");return}
+        state.groups.push({id:uid(),name,color:pickedColor,sort:state.groups.length});
+        save();renderGroupBar();renderGroups();renderTasks();
+        toast("已创建分组");
+      }},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
+  });
+  setTimeout(()=>{const el=$("#gName");if(el)el.focus()},50);
+}
+function editGroup(id){
+  const g=groupById(id);
+  if(!g)return;
+  pickedColor=g.color;
+  showModal({
+    title:"编辑分组",
+    body:"<div style='display:flex;flex-direction:column;gap:12px;text-align:left'>"
+      +"<label class='field'>分组名称<input type='text' id='gName' value='"+esc(g.name)+"' maxlength='20'></label>"
+      +"<label class='field' style='color:var(--text-2)'>颜色</label>"
+      +colorSwatchesHtml(g.color)
+      +"</div>",
+    actions:[
+      {text:"保存",cls:"primary",fn:()=>{
+        const name=$("#gName").value.trim();
+        if(!name){toast("请输入分组名称");return}
+        g.name=name;g.color=pickedColor;
+        save();renderGroupBar();renderGroups();renderTasks();
+        toast("已保存");
+      }},
+      {text:"删除分组",cls:"danger",fn:()=>removeGroup(g)},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
+  });
+  setTimeout(()=>{const el=$("#gName");if(el){el.focus();el.select()}},50);
+}
+function removeGroup(g){
+  showModal({
+    title:"删除分组",
+    body:"删除分组「"+esc(g.name)+"」？分组内的任务会移到「收件箱」，专注记录不受影响。",
+    actions:[
+      {text:"删除",cls:"danger",fn:()=>{
+        state.groups=state.groups.filter(x=>x.id!==g.id);
+        state.tasks.forEach(t=>{if(t.groupId===g.id)t.groupId=""});
+        if(state.groupFilter===g.id)state.groupFilter="all";
+        save();renderGroupBar();renderGroups();renderTasks();
+        toast("已删除分组");
+      }},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
+  });
+}
+function manageGroups(){
+  const rows=sortedGroups().map(g=>
+    "<div class='mg-row'><span class='gdot' style='background:"+g.color+"'></span><span class='mg-name'>"+esc(g.name)+"</span>"
+    +"<span class='sg-count'>"+activeCountOf(g.id)+" 个任务</span>"
+    +"<button class='btn ghost sm' data-mg='edit:"+g.id+"'>"+ic("edit",13)+"</button>"
+    +"<button class='btn ghost sm' data-mg='del:"+g.id+"'>"+ic("del",13)+"</button></div>"
+  ).join("");
+  showModal({
+    title:"管理分组",
+    body:rows||"<div class='chart-empty'>还没有分组，点右上角 ＋ 新建一个</div>",
+    actions:[{text:"关闭",cls:"ghost",fn:null}]
+  });
+}
+function focusTask(id){
+  state.currentTaskId=id;
+  save();
+  switchView("timer");
+  resetTimer("work");
+  renderTimerView();
+  startTimer();
+  toast("开始专注");
+}
+
+
+/* ============ Timer view ============ */
+function renderTimerView(){
+  const td=$("#timeDisplay");
+  if(td)td.textContent=fmtClock(timer.remaining);
+  const st=$("#stateLabel");
+  if(st)st.textContent=stateText();
+  const fg=$("#ringFg");
+  if(fg){fg.style.strokeDasharray=RING_C;fg.style.strokeDashoffset=RING_C*(1-timer.remaining/durOf());fg.setAttribute("class","ring-fg mode-"+timer.mode)}
+  $$("#modeTabs .mode-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===timer.mode));
+  const startBtn=$("#startBtn");
+  if(startBtn){startBtn.textContent=timer.status==="running"?"⏸ 暂停":"▶ 开始";startBtn.classList.toggle("primary",timer.status!=="running");startBtn.classList.toggle("ghost",timer.status==="running")}
+  const sel=$("#timerTaskSelect");
+  if(sel){
+    const opts=state.tasks.filter(t=>!t.completed).sort((a,b)=>(b.pomos||0)-(a.pomos||0));
+    sel.innerHTML="<option value=''>无任务（自由计时）</option>"
+      +opts.map(t=>"<option value='"+t.id+"'"+(t.id===state.currentTaskId?" selected":"")+">"+esc(t.title)+"</option>").join("");
+    sel.disabled=timer.status==="running";
+  }
+  const curTask=state.tasks.find(t=>t.id===state.currentTaskId);
+  const todaySess=state.sessions.filter(s=>s.type==="work"&&isSameDay(new Date(s.end),new Date()));
+  $("#timerStats").innerHTML=
+    "<span>今日番茄 <b>"+todaySess.length+"</b> / "+state.settings.weeklyGoal+"</span>"
+    +"<span>今日专注 <b>"+fmtDuration(todaySess.reduce((a,b)=>a+b.mins,0))+"</b></span>"
+    +"<span>本轮已专注 <b>"+timer.pomosInRun+"</b> 个</span>"
+    +(curTask?"<span>当前任务 <b>"+esc(curTask.title)+"</b></span>":"");
+  renderMiniTimer();
+  const banner=$("#notifBanner");
+  if(banner){
+    const ok=!("Notification" in window)||Notification.permission==="granted"||Notification.permission==="denied";
+    banner.style.display=(state.settings.notifications||ok)?"none":"flex";
+  }
+}
+function renderMiniTimer(){
+  const dot=$("#miniDot"),t=$("#miniTime"),st=$("#miniState");
+  if(!dot)return;
+  dot.className="mini-dot mode-"+timer.mode;
+  t.textContent=fmtClock(timer.remaining);
+  if(timer.status==="running")st.textContent=MODE_NAME[timer.mode]+"中…";
+  else if(timer.status==="paused")st.textContent=MODE_NAME[timer.mode]+"已暂停";
+  else st.textContent="待机";
+  syncTimer();
+}
+let lastTimerSync={mode:null,status:null,rem:null};
+function syncTimer(force){
+  if(!force){
+    if(timer.mode===lastTimerSync.mode&&timer.status===lastTimerSync.status&&Math.abs(timer.remaining-lastTimerSync.rem)<1)return;
+  }
+  lastTimerSync={mode:timer.mode,status:timer.status,rem:Math.round(timer.remaining)};
+  fetch("/api/timer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:timer.mode,status:timer.status,endAt:timer.endAt,startedAt:timer.startedAt,remaining:Math.round(timer.remaining)})}).catch(()=>{});
+}
+
+/* ============ Stats helpers ============ */
+function sessionsIn(startMs,endMs){
+  return state.sessions.filter(s=>s.end>=startMs&&s.end<endMs);
+}
+function weekRange(offset){
+  const ws=weekStart(new Date());
+  const start=addDays(ws,offset*7);
+  const end=addDays(start,7);
+  return {start,end,days:Array.from({length:7},(_,i)=>addDays(start,i))};
+}
+function dayStats(dayStart){
+  const start=(dayStart instanceof Date)?dayStart.getTime():dayStart;
+  const end=start+86400000;
+  const sess=sessionsIn(start,end);
+  const work=sess.filter(s=>s.type==="work");
+  const mins=work.reduce((a,b)=>a+b.mins,0);
+  const doneTasks=state.tasks.filter(t=>t.completed&&t.completedAt>=start&&t.completedAt<end);
+  return {pomos:work.length,mins,done:doneTasks.length,sessions:sess};
+}
+function computeStreak(){
+  let streak=0;
+  let d=startOfDay(new Date());
+  if(dayStats(d.getTime()).pomos===0)d=addDays(d,-1);
+  while(dayStats(d.getTime()).pomos>0){streak++;d=addDays(d,-1);if(streak>3650)break}
+  return streak;
+}
+
+/* ============ Charts ============ */
+function barChart(elId,items,{height=190,color="#FF6B4A",formatter}={}){
+  const el=$("#"+elId);
+  if(!el)return;
+  const max=Math.max(1,...items.map(i=>i.value));
+  const W=el.clientWidth||640;
+  const padL=8,padR=8,padT=26,padB=26;
+  const innerW=W-padL-padR, innerH=height-padT-padB;
+  const bw=Math.min(46,innerW/items.length*0.55);
+  const step=innerW/items.length;
+  const bars=items.map((it,i)=>{
+    const h=Math.max(it.value>0?4:0,it.value/max*innerH);
+    const x=padL+step*i+(step-bw)/2;
+    const y=padT+innerH-h;
+    const gid="grad"+elId.replace(/\W/g,"");
+    const fill=it.hl?"url(#"+gid+"-hl)":"url(#"+gid+")";
+    return "<rect x='"+x+"' y='"+y+"' width='"+bw+"' height='"+h+"' rx='"+(bw/2)+"' fill='"+fill+"'/>"
+      +"<text x='"+(x+bw/2)+"' y='"+(y-7)+"' text-anchor='middle' font-size='12' font-weight='700' fill='var(--text)'>"+(it.value||"")+"</text>"
+      +"<text x='"+(x+bw/2)+"' y='"+(height-8)+"' text-anchor='middle' font-size='11.5' fill='var(--text-3)'>"+it.label+"</text>";
+  }).join("");
+  const gid="grad"+elId.replace(/\W/g,"");
+  el.innerHTML="<svg viewBox='0 0 "+W+" "+height+"' preserveAspectRatio='none'>"
+    +"<defs>"
+    +"<linearGradient id='"+gid+"' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='"+color+"' stop-opacity='.95'/><stop offset='100%' stop-color='"+color+"' stop-opacity='.55'/></linearGradient>"
+    +"<linearGradient id='"+gid+"-hl' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#FFB199'/><stop offset='100%' stop-color='"+color+"'/></linearGradient>"
+    +"</defs>"
+    +bars
+    +"</svg>";
+}
+
+/* ============ Stats view ============ */
+function renderStats(){
+  const t=new Date(),todayStart=startOfDay(t).getTime();
+  const today=dayStats(todayStart);
+  const streak=computeStreak();
+  const allMins=state.sessions.filter(s=>s.type==="work").reduce((a,b)=>a+b.mins,0);
+  const doneAll=state.tasks.filter(x=>x.completed).length;
+  $("#statCards").innerHTML=statCardsHtml([
+    {val:today.pomos,lbl:"今日番茄钟"},
+    {val:fmtDuration(today.mins),lbl:"今日专注时长",small:true},
+    {val:today.done,lbl:"今日完成任务"},
+    {val:streak,lbl:"连续专注天数"}
+  ]);
+  const days=Array.from({length:7},(_,i)=>{
+    const d=addDays(t,i-6);
+    const s=dayStats(startOfDay(d).getTime());
+    return {label:(d.getMonth()+1)+"/"+d.getDate(),value:s.mins,hl:isSameDay(d,t)};
+  });
+  barChart("chart7dMinutes",days,{color:"#4A8BFF"});
+  const pomoDays=Array.from({length:7},(_,i)=>{
+    const d=addDays(t,i-6);
+    const s=dayStats(startOfDay(d).getTime());
+    return {label:(d.getMonth()+1)+"/"+d.getDate(),value:s.pomos,hl:isSameDay(d,t)};
+  });
+  barChart("chart7dPomos",pomoDays,{color:"#FF6B4A"});
+  /* weekly goal */
+  const wr=weekRange(0);
+  const weekPomos=state.sessions.filter(s=>s.type==="work"&&s.end>=wr.start.getTime()&&s.end<wr.end.getTime()).length;
+  const goal=state.settings.weeklyGoal||0;
+  const pct=goal?Math.min(100,Math.round(weekPomos/goal*100)):0;
+  $("#weeklyGoalBox").innerHTML="<div class='goal-text'>本周已专注 <b>"+weekPomos+"</b> / "+goal+" 个番茄"+(goal&&weekPomos>=goal?" · 目标已达成！":"")+"</div>"
+    +"<div class='goal-bar'><div class='goal-fill' style='width:"+pct+"%'></div></div>";
+  /* task rank */
+  const rank=state.tasks.filter(t=>t.pomos>0).sort((a,b)=>(b.pomos||0)-(a.pomos||0)).slice(0,8);
+  $("#taskRank").innerHTML=rank.length?rank.map((t,i)=>
+    "<div class='rank-row'><span class='rank-no "+(i<3?"top":"")+"'>"+(i+1)+"</span>"
+    +"<span class='rank-name'>"+esc(t.title)+(t.completed?" <span style='color:var(--text-3);font-size:12px'>✓</span>":"")+"</span>"
+    +"<span class='rank-pomos'>"+t.pomos+" 个番茄 · "+fmtDuration((t.pomos||0)*state.settings.work)+"</span></div>"
+  ).join(""):"<div class='chart-empty'>完成第一个番茄后，这里会出现你的专注排行</div>";
+}
+function statCardsHtml(list){
+  return list.map(s=>"<div class='stat-card'><div class='stat-val'"+(s.small?" style='font-size:19px'":"")+">"+s.val+"</div><div class='stat-lbl'>"+s.lbl+"</div></div>").join("");
+}
+
+
+/* ============ Weekly review ============ */
+function weekTaskRows(){
+  const wr=weekRange(state.reviewOffset);
+  const startMs=wr.start.getTime(),endMs=wr.end.getTime();
+  return state.tasks.map(t=>{
+    const worked=state.sessions.filter(s=>s.type==="work"&&s.taskId===t.id&&s.end>=startMs&&s.end<endMs);
+    return {t,pomos:worked.length,mins:worked.reduce((a,b)=>a+b.mins,0),doneHere:!!(t.completed&&t.completedAt>=startMs&&t.completedAt<endMs)};
+  }).filter(x=>x.pomos>0||x.doneHere).sort((a,b)=>b.pomos-a.pomos||b.mins-a.mins);
+}
+function aiConfigured(){
+  const s=state.settings;
+  return !!(s.aiBaseUrl&&s.aiModel);
+}
+async function aiChat(messages){
+  const s=state.settings;
+  if(!aiConfigured())throw new Error("请先在设置中填写 Base URL 和模型");
+  const r=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({baseUrl:s.aiBaseUrl,apiKey:s.aiApiKey||"",model:s.aiModel,messages})});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||!data.ok)throw new Error(data.error||"AI 请求失败");
+  return data.content;
+}
+function buildAiPrompt(){
+  const wr=weekRange(state.reviewOffset);
+  const startMs=wr.start.getTime(),endMs=wr.end.getTime();
+  const work=state.sessions.filter(s=>s.type==="work"&&s.end>=startMs&&s.end<endMs);
+  const doneTasks=state.tasks.filter(t=>t.completed&&t.completedAt>=startMs&&t.completedAt<endMs).map(t=>t.title);
+  const byTask={};
+  work.forEach(s=>{const k=s.taskId||"自由专注";(byTask[k]=byTask[k]||[]).push(s)});
+  const topTasks=Object.entries(byTask).map(([name,arr])=>({name,pomos:arr.length,mins:Math.round(arr.reduce((a,b)=>a+b.mins,0))})).sort((a,b)=>b.pomos-a.pomos).slice(0,8);
+  const prev=weekRange(state.reviewOffset-1);
+  const prevPomos=state.sessions.filter(s=>s.type==="work"&&s.end>=prev.start.getTime()&&s.end<prev.end.getTime()).length;
+  const data={
+    周期:(wr.start.getMonth()+1)+"月"+wr.start.getDate()+"日 - "+((wr.end.getMonth())-1||wr.end.getMonth())+"月"+wr.end.getDate()+"日",
+    番茄钟:work.length,
+    专注分钟:Math.round(work.reduce((a,b)=>a+b.mins,0)),
+    完成任务:doneTasks,
+    主要任务投入:topTasks,
+    每日明细:wr.days.map(d=>{
+      const ds=dayStats(startOfDay(d).getTime());
+      return {[(d.getMonth()+1)+"/"+d.getDate()]:"番茄 "+ds.pomos+" 个 · "+ds.mins+" 分钟"};
+    }),
+    上一周番茄:prevPomos,
+    每周番茄目标:state.settings.weeklyGoal||0
+  };
+  return "你是一位专注效率分析师。请根据以下本周专注数据，用中文写一份简洁的每周回顾（300字以内），包含：【本周概况】【主要产出】【亮点】【可改进建议】四部分，避免客套话。数据如下：\n"+JSON.stringify(data,null,2);
+}
+function renderAiAnalysis(){
+  const el=$("#aiText");
+  if(!el)return;
+  const note=$("#aiNote");
+  const off=state.reviewOffset;
+  if(!aiConfigured()){
+    if(note)note.textContent="当前：本地智能分析 · 在设置中配置大模型 API 可升级为在线 AI";
+    el.innerHTML=generateAiAnalysis().map(p=>"<p>"+p+"</p>").join("");
+    setAiGenerated(true);
+    return;
+  }
+  if(note)note.textContent="当前：在线大模型（"+state.settings.aiModel+"）· 密钥仅保存在本机";
+  el.textContent="AI 正在分析本周数据…";
+  aiChat([
+    {role:"system",content:"你是专注效率分析师，输出简洁、使用中文。"},
+    {role:"user",content:buildAiPrompt()}
+  ]).then(content=>{
+    if(state.reviewOffset!==off){renderAiPlaceholder();return}
+    el.textContent=content;
+    setAiGenerated(true);
+  }).catch(err=>{
+    if(state.reviewOffset!==off){renderAiPlaceholder();return}
+    el.innerHTML="<p>在线 AI 分析失败："+esc(err.message)+"</p>";
+    el.innerHTML+=generateAiAnalysis().map(p=>"<p>"+p+"</p>").join("");
+    setAiGenerated(true);
+  });
+}
+function setAiGenerated(on){
+  const el=$("#aiText");
+  const btn=$("#aiRegenBtn");
+  if(!el||!btn)return;
+  if(on){
+    el.dataset.generated="1";
+    el.dataset.forOffset=String(state.reviewOffset);
+    btn.textContent="重新生成";
+  }else{
+    delete el.dataset.generated;
+    delete el.dataset.forOffset;
+    btn.textContent="生成 AI 分析";
+  }
+}
+function renderAiPlaceholder(){
+  const el=$("#aiText");
+  const note=$("#aiNote");
+  if(!el)return;
+  if(!el.dataset.generated||el.dataset.forOffset!==String(state.reviewOffset)){
+    el.innerHTML="<p class='chart-empty'>尚未生成分析，点击上方「生成 AI 分析」手动生成</p>";
+    if(note)note.textContent="当前：本地智能分析 · 在设置中配置大模型 API 可升级为在线 AI";
+    setAiGenerated(false);
+  }
+}
+function generateAiAnalysis(){
+  const wr=weekRange(state.reviewOffset);
+  const startMs=wr.start.getTime(),endMs=wr.end.getTime();
+  const work=state.sessions.filter(s=>s.type==="work"&&s.end>=startMs&&s.end<endMs);
+  const pomos=work.length;
+  const mins=work.reduce((a,b)=>a+b.mins,0);
+  const doneTasks=state.tasks.filter(t=>t.completed&&t.completedAt>=startMs&&t.completedAt<endMs).sort((a,b)=>b.completedAt-a.completedAt);
+  const created=state.tasks.filter(t=>t.created>=startMs&&t.created<endMs).length;
+  const prev=weekRange(state.reviewOffset-1);
+  const prevPomos=state.sessions.filter(s=>s.type==="work"&&s.end>=prev.start.getTime()&&s.end<prev.end.getTime()).length;
+  const diff=prevPomos>0?Math.round((pomos-prevPomos)/prevPomos*100):null;
+  const days=wr.days.map(d=>dayStats(startOfDay(d).getTime()));
+  const workDays=days.filter(d=>d.pomos>0);
+  const best=days.map((d,i)=>({i,pomos:d.pomos})).sort((a,b)=>b.pomos-a.pomos)[0];
+  const hourCount={};
+  work.forEach(s=>{const h=new Date(s.end).getHours();hourCount[h]=(hourCount[h]||0)+1});
+  const topHour=Object.entries(hourCount).sort((a,b)=>b[1]-a[1])[0];
+  const byTask={};
+  work.forEach(s=>{const k=s.taskId||"__free__";(byTask[k]=byTask[k]||[]).push(s)});
+  const taskRows=Object.entries(byTask).map(([id,arr])=>{
+    const t=state.tasks.find(x=>x.id===id);
+    return {name:t?t.title:"自由专注",pomos:arr.length,mins:arr.reduce((a,b)=>a+b.mins,0)};
+  }).sort((a,b)=>b.pomos-a.pomos||b.mins-a.mins);
+  const out=[];
+  if(!pomos){
+    out.push("本周还没有专注记录，暂时无法分析。从一个小番茄开始，下周我就能给你总结啦");
+    return out;
+  }
+  let s="【本周概况】完成 <b>"+pomos+"</b> 个番茄钟，累计专注 <b>"+fmtMins(mins)+"</b>，投入 <b>"+taskRows.length+"</b> 项任务";
+  if(doneTasks.length)s+="，完成任务 <b>"+doneTasks.length+"</b> 个";
+  s+="。";
+  out.push(s);
+  if(taskRows.length){
+    const top=taskRows.slice(0,5);
+    out.push("【主要产出】"+top.map((r,i)=>"<b>"+esc(r.name)+"</b>（"+r.pomos+" 个番茄 · "+fmtMins(r.mins)+"）").join("、")+(taskRows.length>5?" 等 "+taskRows.length+" 项":""));
+  }
+  if(doneTasks.length){
+    out.push("【已完成任务】"+doneTasks.slice(0,8).map(t=>t.title).join("、")+(doneTasks.length>8?" 等 "+doneTasks.length+" 个":""));
+  }
+  const parts=[];
+  if(best&&best.pomos>0){
+    const d=wr.days[best.i];
+    parts.push("最专注的是 <b>"+(d.getMonth()+1)+"月"+d.getDate()+"日（周"+["日","一","二","三","四","五","六"][d.getDay()]+"）</b>，完成 "+best.pomos+" 个番茄");
+  }
+  if(topHour&&topHour[1]>=2)parts.push("高效时段集中在 <b>"+topHour[0]+":00-"+((+topHour[0])+1)+":00</b>（"+topHour[1]+" 个番茄）");
+  if(workDays.length)parts.push("平均每个专注日 "+Math.round(mins/workDays.length)+" 分钟");
+  if(diff!==null)parts.push("对比上周"+(diff>=0?"<b>+"+diff+"%</b>":"<b>"+diff+"%</b>"));
+  if(parts.length)out.push("【节奏观察】"+parts.join("；")+"。");
+  if(created>0&&doneTasks.length){
+    const rate=Math.round(doneTasks.length/created*100);
+    out.push("【完成情况】本周新建 "+created+" 个任务，完成 "+doneTasks.length+" 个，完成率 <b>"+rate+"%</b>"+(rate>=70?"，执行力很棒":rate>=40?"，总体不错":"，下周可以更聚焦一些"));
+  }
+  const tips=[];
+  if(created>0&&doneTasks.length>0&&doneTasks.length/created<0.5)tips.push("本周新建任务较多、完成率偏低，建议少开新任务、把大任务拆成小番茄");
+  if(topHour&&topHour[1]>=2)tips.push("把最重要的工作安排在 "+topHour[0]+":00 前后的黄金时段，效率会更高");
+  if(state.settings.weeklyGoal>0&&pomos>=state.settings.weeklyGoal)tips.push("已经完成周目标（"+state.settings.weeklyGoal+" 个番茄），可以适当提高目标啦");
+  else if(state.settings.weeklyGoal>0)tips.push("距离周目标（"+state.settings.weeklyGoal+" 个番茄）还差 "+(state.settings.weeklyGoal-pomos)+" 个，加油");
+  if(workDays.length&&Math.round(pomos/workDays.length)<2)tips.push("平均每个专注日不足 2 个番茄，建议每天固定 1-2 个完整番茄时段，形成节奏");
+  if(diff!==null&&diff>0)tips.push("本周专注量比上周提升 "+diff+"%，势头很好，继续保持");
+  if(diff!==null&&diff<0)tips.push("本周专注量比上周回落 "+Math.abs(diff)+"%，别灰心，从明天一个小番茄开始找回节奏");
+  if(doneTasks.length)tips.push("本周完成了 "+doneTasks.length+" 个任务，记得给自己一点小奖励");
+  tips.push("尝试把相似的小任务合并成一组番茄，减少切换成本");
+  if(!tips.length)tips.push("整体节奏不错，保持每天固定专注时段，效果会更稳定");
+  for(let i=tips.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[tips[i],tips[j]]=[tips[j],tips[i]]}
+  out.push("【AI 建议】"+tips.slice(0,2).map(t=>"· "+t).join(""));
+  return out;
+}
+function copyAiAnalysis(){
+  const text=$("#aiText").innerText||"";
+  if(!text){toast("暂时没有可复制的内容");return}
+  const done=()=>toast("分析已复制到剪贴板");
+  const fallback=()=>{
+    const ta=document.createElement("textarea");
+    ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");done()}catch(e){toast("复制失败，请手动选择复制")}
+    ta.remove();
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(fallback)}
+  else fallback();
+}
+
+function renderReview(){
+  const wr=weekRange(state.reviewOffset);
+  const startMs=wr.start.getTime(),endMs=wr.end.getTime();
+  const isCur=state.reviewOffset===0;
+  $("#thisWeekBtn").style.visibility=isCur?"hidden":"visible";
+  const weekEnd=addDays(wr.end,-1);
+  const rangeLabel=(wr.start.getMonth()+1)+"月"+wr.start.getDate()+"日 — "+(weekEnd.getMonth()+1)+"月"+weekEnd.getDate()+"日";
+  $("#reviewRange").textContent=isCur?"本周 · "+rangeLabel:(state.reviewOffset<0?"前 "+(0-state.reviewOffset)+" 周 · ":"后 "+state.reviewOffset+" 周 · ")+rangeLabel;
+  const days=wr.days.map(d=>{
+    const s=dayStats(startOfDay(d).getTime());
+    return {date:d,label:"周"+["日","一","二","三","四","五","六"][d.getDay()],pomos:s.pomos,mins:s.mins,done:s.done};
+  });
+  const totalPomos=days.reduce((a,b)=>a+b.pomos,0);
+  const totalMins=days.reduce((a,b)=>a+b.mins,0);
+  const totalDone=days.reduce((a,b)=>a+b.done,0);
+  const best=days.slice().sort((a,b)=>b.pomos-a.pomos||b.mins-a.mins)[0];
+  const workDays=days.filter(d=>d.pomos>0);
+  const avgMins=workDays.length?Math.round(totalMins/workDays.length):0;
+  const prev=weekRange(state.reviewOffset-1);
+  const prevPomos=state.sessions.filter(s=>s.type==="work"&&s.end>=prev.start.getTime()&&s.end<prev.end.getTime()).length;
+  const diff=prevPomos>0?Math.round((totalPomos-prevPomos)/prevPomos*100):null;
+  $("#reviewCards").innerHTML=statCardsHtml([
+    {val:totalPomos,lbl:"本周番茄钟"},
+    {val:fmtDuration(totalMins),lbl:"本周专注时长",small:true},
+    {val:totalDone,lbl:"本周完成任务"},
+    {val:best&&best.pomos>0?(best.date.getMonth()+1)+"/"+best.date.getDate():0,lbl:best&&best.pomos>0?"最佳日 · "+best.pomos+" 个番茄":"暂无专注"}
+  ]);
+  /* chart */
+  barChart("reviewChart",days.map(d=>({label:(d.date.getMonth()+1)+"/"+d.date.getDate()+"\n"+d.label,value:d.mins,hl:isSameDay(d.date,new Date())&&isCur})),{color:"#FF6B4A",height:200});
+  /* day list */
+  $("#dayList").innerHTML=days.map(d=>{
+    const n=Math.min(5,Math.max(1,d.pomos||1));
+    const bars=Array.from({length:n},(_,i)=>i<d.pomos?"<i style='height:"+(10+Math.min(12,d.pomos*3))+"px'></i>":"<i style='height:6px;opacity:.25'></i>").join("");
+    return "<div class='day-row'><div><div class='day-name'>"+d.label+(isSameDay(d.date,new Date())?"（今天）":"")+"</div><div class='day-date'>"+(d.date.getMonth()+1)+"月"+d.date.getDate()+"日</div></div>"
+      +"<div class='day-bars'>"+bars+"</div>"
+      +"<div class='day-nums'>"+(d.pomos?d.pomos+" 个番茄 · "+fmtDuration(d.mins):"—")+"</div></div>";
+  }).join("");
+  /* week task detail */
+  const wtr=weekTaskRows();
+  $("#weekTaskList").innerHTML=wtr.length?wtr.map((r,i)=>
+    "<div class='rank-row'><span class='rank-no "+(i<3?"top":"")+"'>"+(i+1)+"</span>"
+    +"<span class='rank-name'>"+esc(r.t.title)+"</span>"
+    +"<span class='rank-pomos'>"+r.pomos+" 个番茄 · "+fmtDuration(r.mins)
+    +(r.doneHere?" · <span class='chip full'>✓ "+(new Date(r.t.completedAt).getMonth()+1)+"/"+new Date(r.t.completedAt).getDate()+" 完成</span>":" · <span class='chip'>进行中</span>")
+    +"</span></div>").join("")
+    :"<div class='chart-empty'>本周暂无任务记录，去完成一个番茄吧</div>";
+  /* AI analysis */
+  renderAiPlaceholder();
+  /* insights */
+  const ins=[];
+  ins.push("本周共专注 <b>"+totalMins+" 分钟</b>，完成 <b>"+totalPomos+" 个番茄钟</b>");
+  if(diff!==null&&totalPomos>0)ins.push("相比上一周（"+prevPomos+" 个），本周"+(diff>=0?"多了 <b>"+diff+"%</b>":"少了 <b>"+Math.abs(diff)+"%</b>"));
+  if(best&&best.pomos>0)ins.push("专注最佳的一天是 <b>"+(best.date.getMonth()+1)+"月"+best.date.getDate()+"日（周"+["日","一","二","三","四","五","六"][best.date.getDay()]+"）</b>，完成 "+best.pomos+" 个番茄钟");
+  if(workDays.length)ins.push("平均每个专注日完成 <b>"+fmtDuration(avgMins)+"</b> 的专注");
+  const topTask=state.tasks.slice().sort((a,b)=>(b.pomos||0)-(a.pomos||0))[0];
+  if(topTask&&topTask.pomos>0)ins.push("最常专注的任务是「<b>"+esc(topTask.title)+"</b>」，累计 "+topTask.pomos+" 个番茄钟");
+  const createdInWeek=state.tasks.filter(t=>t.created>=startMs&&t.created<endMs).length;
+  if(createdInWeek>0&&totalDone>0)ins.push("本周新建 "+createdInWeek+" 个任务，完成 "+totalDone+" 个");
+  const goal=state.settings.weeklyGoal||0;
+  if(goal>0)ins.push("周目标 "+goal+" 个番茄"+(totalPomos>=goal?"已达成，太棒了！":"，还差 <b>"+(goal-totalPomos)+"</b> 个"+(isCur?"，继续加油":"（目标为本周设定）")));
+  if(!totalPomos)ins.push("本周还没有专注记录，从一个小番茄开始吧");
+  $("#insights").innerHTML=ins.map(h=>"<div class='insight'>"+h+"</div>").join("");
+}
+
+/* ============ Settings ============ */
+function renderSettings(){
+  const s=state.settings;
+  $("#setWork").value=s.work;$("#setShort").value=s.short;$("#setLong").value=s.long;
+  $("#setLongInterval").value=s.longInterval;$("#setWeeklyGoal").value=s.weeklyGoal;
+  $("#setSound").checked=s.sound;$("#setNotif").checked=s.notifications;
+  $("#setAutoBreak").checked=s.autoBreak;$("#setAutoWork").checked=s.autoWork;$("#setDark").checked=s.dark;
+  $("#aiBaseUrl").value=s.aiBaseUrl||"";
+  $("#aiApiKey").value=s.aiApiKey||"";
+  $("#aiModel").value=s.aiModel||"";
+  updateNotifStatus();
+}
+function applyDark(v){
+  document.documentElement.dataset.theme=v?"dark":"";
+}
+
+
+/* ============ Events & init ============ */
+function bindEvents(){
+  /* nav */
+  $$(".nav-item").forEach(n=>n.addEventListener("click",()=>switchView(n.dataset.view)));
+  $("#miniTimer").addEventListener("click",()=>switchView("timer"));
+  /* tasks */
+  $("#addOptsToggle").addEventListener("click",()=>{
+    const wrap=$("#addExtrasWrap"),btn=$("#addOptsToggle");
+    const open=wrap.style.display==="none";
+    wrap.style.display=open?"flex":"none";
+    btn.textContent=open?"更多选项 ▴":"更多选项 ▾";
+  });
+  $("#ringWrap").addEventListener("click",()=>{timer.status==="running"?pauseTimer():startTimer()});
+  $("#groupChips").addEventListener("click",e=>{const c=e.target.closest(".gchip-bar");if(c)setGroupFilter(c.dataset.g)});
+  $("#sideGroupList").addEventListener("click",e=>{
+    const act=e.target.closest("[data-sgact]");
+    if(act){
+      const parts=act.dataset.sgact.split(":");
+      const g=groupById(parts[1]);
+      if(parts[0]==="edit"&&g)editGroup(g.id);
+      else if(parts[0]==="del"&&g)removeGroup(g);
+      return;
+    }
+    const c=e.target.closest(".sg-item");
+    if(c)setGroupFilter(c.dataset.g);
+  });
+  $("#newGroupBtn").addEventListener("click",newGroup);
+  $("#sideNewGroup").addEventListener("click",newGroup);
+  $("#manageGroupBtn").addEventListener("click",manageGroups);
+  $("#addForm").addEventListener("submit",addTask);
+  $("#taskList").addEventListener("click",e=>handleTaskClick(e));
+  $("#doneList").addEventListener("click",e=>handleTaskClick(e));
+  $("#doneHead").addEventListener("click",()=>{
+    const sec=$("#doneSection");
+    sec.classList.toggle("collapsed");
+  });
+  /* timer */
+  $("#modeTabs").addEventListener("click",e=>{
+    const b=e.target.closest(".mode-tab");
+    if(b)switchMode(b.dataset.mode);
+  });
+  $("#startBtn").addEventListener("click",()=>{
+    if(timer.status==="running")pauseTimer();
+    else startTimer();
+  });
+  $("#resetBtn").addEventListener("click",()=>{resetTimer(timer.mode);toast("已重置")});
+  $("#skipBtn").addEventListener("click",skipTimer);
+  $("#timerTaskSelect").addEventListener("change",e=>{
+    state.currentTaskId=e.target.value||null;
+    save();renderTimerView();
+  });
+  $("#notifEnableBtn").addEventListener("click",requestNotif);
+  /* review */
+  $("#aiCopyBtn").addEventListener("click",copyAiAnalysis);
+  $("#aiRegenBtn").addEventListener("click",()=>{renderAiAnalysis();toast("已生成分析")});
+  $("#prevWeekBtn").addEventListener("click",()=>{state.reviewOffset--;save();renderReview()});
+  $("#nextWeekBtn").addEventListener("click",()=>{state.reviewOffset++;save();renderReview()});
+  $("#thisWeekBtn").addEventListener("click",()=>{state.reviewOffset=0;save();renderReview()});
+  /* settings */
+  $("#saveAiBtn").addEventListener("click",()=>{
+    state.settings.aiBaseUrl=$("#aiBaseUrl").value.trim();
+    state.settings.aiApiKey=$("#aiApiKey").value.trim();
+    state.settings.aiModel=$("#aiModel").value.trim();
+    save();renderSettings();
+    toast("AI 配置已保存");
+  });
+  $("#testAiBtn").addEventListener("click",async()=>{
+    if(!$("#aiBaseUrl").value.trim()||!$("#aiModel").value.trim()){toast("请先填写 Base URL 和模型");return}
+    state.settings.aiBaseUrl=$("#aiBaseUrl").value.trim();
+    state.settings.aiApiKey=$("#aiApiKey").value.trim();
+    state.settings.aiModel=$("#aiModel").value.trim();
+    save();
+    toast("正在测试连接…");
+    try{
+      const content=await aiChat([{role:"user",content:"请只回复四个字：连接成功"}]);
+      toast("连接成功："+content.trim().slice(0,20));
+    }catch(e){
+      toast("连接失败："+e.message.slice(0,40));
+    }
+  });
+  $("#saveTimingBtn").addEventListener("click",()=>{
+    const s=state.settings;
+    s.work=clamp(+$("#setWork").value||25,1,120);
+    s.short=clamp(+$("#setShort").value||5,1,60);
+    s.long=clamp(+$("#setLong").value||15,1,120);
+    s.longInterval=clamp(+$("#setLongInterval").value||4,2,12);
+    s.weeklyGoal=clamp(+$("#setWeeklyGoal").value||0,0,200);
+    if(timer.status==="idle"&&timer.remaining<=0)resetTimer(timer.mode);
+    save();renderSettings();renderTimerView();renderStats();
+    toast("时长设置已保存");
+  });
+  $("#setSound").addEventListener("change",e=>{state.settings.sound=e.target.checked;save()});
+  $("#setNotif").addEventListener("change",e=>{
+    if(e.target.checked)requestNotif();
+    else{state.settings.notifications=false;save();hideNotifBanner();updateNotifStatus()}
+  });
+  $("#testNotifBtn").addEventListener("click",testNotification);
+  $("#setAutoBreak").addEventListener("change",e=>{state.settings.autoBreak=e.target.checked;save()});
+  $("#setAutoWork").addEventListener("change",e=>{state.settings.autoWork=e.target.checked;save()});
+  $("#setDark").addEventListener("change",e=>{state.settings.dark=e.target.checked;save();applyDark(state.settings.dark)});
+  $("#exportBtn").addEventListener("click",exportData);
+  $("#clearBtn").addEventListener("click",clearData);
+  $("#retryBtn").addEventListener("click",async()=>{await load();applyDark(state.settings.dark);resetTimer(timer.mode);renderAll();renderSettings();fetchDbInfo();toast(serverOk?"已连接数据库":"仍无法连接，请确认服务已启动")});
+  /* keyboard: space toggles timer */
+  document.addEventListener("keydown",e=>{
+    if(e.code==="Space"&&currentView==="timer"&&!e.target.matches("input,select,textarea,button")){
+      e.preventDefault();
+      timer.status==="running"?pauseTimer():startTimer();
+    }
+  });
+}
+function handleTaskClick(e){
+  const item=e.target.closest(".task-item");
+  if(!item)return;
+  const id=item.dataset.id;
+  if(e.target.classList.contains("check")){toggleTask(id);return}
+  const actBtn=e.target.closest("[data-act]");
+  if(!actBtn)return;
+  const act=actBtn.dataset.act;
+  if(act==="focus")focusTask(id);
+  else if(act==="edit")editTask(id);
+  else if(act==="del")deleteTask(id);
+}
+function exportData(){
+  const data={exportedAt:new Date().toISOString(),app:"focuslist",version:1,state};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="专注清单备份-"+todayKey()+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("数据已导出");
+}
+function clearData(){
+  showModal({
+    title:"清除所有数据",
+    body:"将删除所有任务、番茄记录和设置，此操作不可恢复。确定继续吗？",
+    actions:[
+      {text:"清除全部数据",cls:"danger",fn:async()=>{try{await fetch("/api/state",{method:"DELETE"})}catch(e){}localStorage.removeItem(LS_KEY);localStorage.removeItem(META_KEY);location.reload()}},
+      {text:"取消",cls:"ghost",fn:null}
+    ]
+  });
+}
+function showWelcome(){
+  showModal({
+    title:"欢迎使用专注清单",
+    body:"一个简单好用的番茄工作法工具：<br>1. 添加任务，规划预计番茄数<br>2. 点击任务旁的「开始专注」按钮<br>3. 完成时弹窗提醒你休息，数据自动记录<br><br><b>所有数据保存在本机 SQLite 数据库</b>",
+    actions:[{text:"开始使用",cls:"primary",fn:()=>{state.welcomed=true;save()}}]
+  });
+}
+function renderAll(){
+  renderTasks();
+  renderTimerView();
+  if(currentView==="stats")renderStats();
+  if(currentView==="review")renderReview();
+}
+
+
+
+
+async function init(){
+  await load();
+  applyDark(state.settings.dark);
+  resetTimer("work");
+  bindEvents();
+  renderSub();
+  renderTasks();
+  renderTimerView();
+  renderSettings();
+  renderGroupBar();
+  renderGroups();
+  fetchDbInfo();
+  if(state.sessions.length||state.tasks.length)state.welcomed=true;
+  if(!state.welcomed)setTimeout(showWelcome,300);
+}
+init();
+
+</script>
+</body>
+</html>
