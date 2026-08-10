@@ -1,13 +1,12 @@
 import AppKit
 import Foundation
 
-final class App: NSObject, NSApplicationDelegate {
+final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var pollTimer: Timer?
     private var state: [String: Any] = [:]
     private var alertedEndAt: Double = 0
     private var flashTimer: Timer?
-    private var flashUntil: TimeInterval = 0
     private var flashOn = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -29,6 +28,11 @@ final class App: NSObject, NSApplicationDelegate {
         quit.target = self
         menu.addItem(quit)
         statusItem.menu = menu
+        menu.delegate = self
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        stopFlash()
     }
 
     @objc private func openApp() {
@@ -76,7 +80,6 @@ final class App: NSObject, NSApplicationDelegate {
     }
 
     private func startFlash() {
-        flashUntil = Date().timeIntervalSince1970 + 180
         flashOn = false
         flashTimer?.invalidate()
         flashTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
@@ -91,11 +94,6 @@ final class App: NSObject, NSApplicationDelegate {
     }
 
     private func flashTick() {
-        if Date().timeIntervalSince1970 > flashUntil {
-            stopFlash()
-            updateTitle()
-            return
-        }
         flashOn.toggle()
         statusItem.button?.title = flashOn ? "⏰ 时间到！" : "🍅 00:00"
     }
