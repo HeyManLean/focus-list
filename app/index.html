@@ -962,9 +962,11 @@ function switchView(v){
 function renderSub(){
   const el=$("#viewSub");
   if(currentView==="tasks"){
-    const act=state.tasks.filter(t=>!t.completed).length;
-    const done=state.tasks.length-act;
-    el.textContent=act?("还有 "+act+" 个任务待完成 · 已完成 "+done+" 个"):(done?"今天没有待办啦，享受生活吧":"从添加一个任务开始你的专注之旅吧");
+    const scoped=state.tasks.filter(t=>!t.completed&&inTaskScope(t)).length;
+    const future=state.taskScope==="week"?state.tasks.filter(t=>!t.completed&&!inTaskScope(t)&&t.due).length:0;
+    const act=scoped+future;
+    const done=state.tasks.filter(t=>t.completed).length;
+    el.textContent=act?("还有 "+act+" 个任务待完成 · 已完成 "+done+" 个"):(done?"这里没有待办啦，享受生活吧":"从添加一个任务开始你的专注之旅吧");
   }else if(currentView==="timer"){
     el.textContent="选择一个任务，开始你的番茄钟";
   }else if(currentView==="stats"){
@@ -1040,11 +1042,13 @@ function groupSectionHtml(name,color,tasks){
 }
 function renderTasks(){
   renderScopeBar();
-  const acts=sortedTasks().filter(t=>!t.completed&&inTaskScope(t));
+  const scoped=sortedTasks().filter(t=>!t.completed&&inTaskScope(t));
+  const future=state.taskScope==="week"?sortedTasks().filter(t=>!t.completed&&!inTaskScope(t)&&t.due):[];
+  const acts=[...scoped,...future];
   const dones=state.tasks.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
   const list=$("#taskList"), doneList=$("#doneList");
   renderGroupBar();
-  const filtered=filterTasksByGroup(acts);
+  const filtered=filterTasksByGroup(scoped);
   if(state.groupFilter==="all"){
     const inbox=filtered.filter(t=>!t.groupId);
     const parts=[];
@@ -1053,9 +1057,14 @@ function renderTasks(){
       const gt=filtered.filter(t=>t.groupId===g.id);
       if(gt.length)parts.push(groupSectionHtml(g.name,g.color,gt));
     });
-    list.innerHTML=parts.length?parts.join(""):"<div class='chart-empty'>暂无进行中的任务，先添加一个吧</div>";
+    const fut=filterTasksByGroup(future);
+    if(fut.length)parts.push(groupSectionHtml("未来任务","#9CA3AF",fut));
+    list.innerHTML=parts.length?parts.join(""):"<div class='chart-empty'>"+(state.taskScope==="week"?"本周暂无任务，先添加一个吧":"今天暂无任务，去「本周任务」看看安排吧")+"</div>";
   }else{
-    list.innerHTML=filtered.length?filtered.map(taskItemHtml).join(""):"<div class='chart-empty'>该分组暂无任务</div>";
+    const rows=filtered.map(taskItemHtml).join("");
+    const fut=filterTasksByGroup(future);
+    const futHtml=fut.length?groupSectionHtml("未来任务","#9CA3AF",fut):"";
+    list.innerHTML=(rows||futHtml)?rows+futHtml:"<div class='chart-empty'>该分组暂无任务</div>";
   }
   doneList.innerHTML=dones.length?dones.map(taskItemHtml).join(""):"<div class='chart-empty'>还没有完成的任务</div>";
   const doneSec=$("#doneSection");
