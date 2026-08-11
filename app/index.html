@@ -802,6 +802,15 @@ function finishTimer(){
   if(timer.status==="running")pauseTimer();
   timer.remaining=0;
   completeSession();
+  if(timer.mode==="work"&&state.currentTaskId){
+    const task=state.tasks.find(t=>t.id===state.currentTaskId);
+    if(task&&!task.completed){
+      task.completed=true;
+      task.completedAt=Date.now();
+      save();
+      renderTasks();
+    }
+  }
 }
 function switchMode(mode){
   if(timer.status==="running")pauseTimer();
