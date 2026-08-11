@@ -483,10 +483,11 @@ def main():
     print("  访问地址   : %s" % url)
     print("  停止服务   : Ctrl + C")
     print("=" * 54)
-    try:
-        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
-    except Exception:
-        pass
+    if not os.environ.get("FL_SKIP_BROWSER"):
+        try:
+            threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+        except Exception:
+            pass
     try:
         server.serve_forever()
     except KeyboardInterrupt:

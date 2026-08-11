@@ -18,6 +18,8 @@ python3 server.py
 
 然后浏览器打开 http://localhost:8765 即可使用（启动后会自动打开浏览器）。
 
+> 服务已注册为 macOS 后台任务（`com.focuslist.server`）：开机自启、异常自动重启，锁屏/休眠不影响；服务已在运行时 `start.sh` 会直接打开浏览器。
+
 > 依赖：仅需 Python 3（macOS / Linux 自带，无需安装任何第三方库）。
 > 端口默认为 8765，可通过环境变量修改：`PORT=9000 python3 server.py`
 
