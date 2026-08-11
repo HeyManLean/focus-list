@@ -809,6 +809,10 @@ function finishTimer(){
       task.completedAt=Date.now();
       save();
       renderTasks();
+      const next=sortedTasks().find(t=>!t.completed);
+      state.currentTaskId=next?next.id:null;
+      save();
+      renderTimerView();
     }
   }
 }
