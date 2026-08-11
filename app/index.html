@@ -1150,7 +1150,12 @@ let pickedColor=GROUP_COLORS[0];
 function sortedGroups(){return state.groups.slice().sort((a,b)=>(a.sort||0)-(b.sort||0)||(a.id<b.id?-1:1))}
 function groupById(id){return state.groups.find(g=>g.id===id)}
 function inboxLabel(){return state.settings.inboxName||"收件箱"}
-function groupOptions(sel){return '<option value="">'+esc(inboxLabel())+'</option>'+sortedGroups().map(g=>'<option value="'+g.id+'"'+(sel===g.id?" selected":"")+'>'+esc(g.name)+'</option>').join("")}
+function groupOptions(sel){
+  const parts=[];
+  if(state.settings.showInbox!==false||sel==="")parts.push('<option value=""'+(sel===""?" selected":"")+'>'+esc(inboxLabel())+'</option>');
+  sortedGroups().forEach(g=>parts.push('<option value="'+g.id+'"'+(sel===g.id?" selected":"")+'>'+esc(g.name)+'</option>'));
+  return parts.join("");
+}
 function activeCountOf(gid){return state.tasks.filter(t=>!t.completed&&(gid?t.groupId===gid:!t.groupId)).length}
 function renderGroupBar(){
   const chips=$("#groupChips");
@@ -1163,7 +1168,12 @@ function renderGroupBar(){
   ];
   chips.innerHTML=items.map(it=>'<span class="gchip-bar'+(state.groupFilter===it.id?" active":"")+'" data-g="'+it.id+'"><i class="gdot" style="background:'+it.color+'"></i>'+esc(it.name)+'<span class="gcount">'+it.n+'</span></span>').join("");
   const sel=$("#addGroup");
-  if(sel)sel.innerHTML=groupOptions();
+  if(sel){
+    let def=undefined;
+    if(state.groupFilter!=="all"&&state.groupFilter!=="inbox")def=state.groupFilter;
+    else if(state.groupFilter==="inbox")def="";
+    sel.innerHTML=groupOptions(def);
+  }
 }
 function renderGroups(){
   const el=$("#sideGroupList");
