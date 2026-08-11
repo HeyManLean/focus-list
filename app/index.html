@@ -222,6 +222,8 @@ label.field input,label.field select{font-weight:500}
 .ai-head h3{margin-bottom:0}
 .btn.sm{padding:6px 13px;font-size:12.5px}
 .mg-row .btn.sm{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px}
+.btn[disabled]{opacity:.35;cursor:default}
+.btn[disabled]:hover{background:var(--card);color:var(--text-2)}
 .ai-text{font-size:14px;line-height:1.9;color:var(--text-2);white-space:pre-line}
 .ai-text p{margin-bottom:9px}
 .ai-text p:last-child{margin-bottom:0}
@@ -899,6 +901,10 @@ function showModal(o){
     const mg=e.target.closest("[data-mg]");
     if(mg){
       const parts=mg.dataset.mg.split(":");
+      if(parts[0]==="up"||parts[0]==="down"){
+        moveGroup(parts[1],parts[0]);
+        return;
+      }
       close();
       const id=parts[1];
       if(parts[0]==="edit"&&id==="inbox")editInbox();
@@ -1219,7 +1225,7 @@ function newGroup(){
       {text:"创建",cls:"primary",fn:()=>{
         const name=$("#gName").value.trim();
         if(!name){toast("请输入分组名称");return}
-        state.groups.push({id:uid(),name,color:pickedColor,sort:state.groups.length});
+        state.groups.push({id:uid(),name,color:pickedColor,sort:Math.max(0,...state.groups.map(g=>g.sort||0))+1});
         save();renderGroupBar();renderGroups();renderTasks();
         toast("已创建分组");
       }},
@@ -1269,7 +1275,7 @@ function removeGroup(g){
     ]
   });
 }
-function manageGroups(){
+function manageGroupsHtml(){
   const rows=[];
   if(state.settings.showInbox!==false){
     rows.push("<div class='mg-row'><span class='gdot' style='background:#9CA3AF'></span><span class='mg-name'>"+esc(inboxLabel())+"</span>"
@@ -1277,17 +1283,38 @@ function manageGroups(){
       +"<button class='btn ghost sm' data-mg='edit:inbox'>"+ic("edit",13)+"</button>"
       +"<button class='btn ghost sm' data-mg='del:inbox'>"+ic("del",13)+"</button></div>");
   }
-  sortedGroups().forEach(g=>{
+  const gs=sortedGroups();
+  gs.forEach((g,i)=>{
     rows.push("<div class='mg-row'><span class='gdot' style='background:"+g.color+"'></span><span class='mg-name'>"+esc(g.name)+"</span>"
     +"<span class='sg-count'>"+activeCountOf(g.id)+" 个任务</span>"
+    +"<button class='btn ghost sm' data-mg='up:"+g.id+"'"+(i===0?" disabled":"")+">▲</button>"
+    +"<button class='btn ghost sm' data-mg='down:"+g.id+"'"+(i===gs.length-1?" disabled":"")+">▼</button>"
     +"<button class='btn ghost sm' data-mg='edit:"+g.id+"'>"+ic("edit",13)+"</button>"
     +"<button class='btn ghost sm' data-mg='del:"+g.id+"'>"+ic("del",13)+"</button></div>");
   });
+  return rows.join("")||"<div class='chart-empty'>还没有分组，点右上角 ＋ 新建一个</div>";
+}
+function manageGroups(){
   showModal({
     title:"管理分组",
-    body:rows.join("")||"<div class='chart-empty'>还没有分组，点右上角 ＋ 新建一个</div>",
+    body:manageGroupsHtml(),
     actions:[{text:"关闭",cls:"ghost",fn:null}]
   });
+}
+function moveGroup(id,dir){
+  const gs=sortedGroups();
+  const i=gs.findIndex(g=>g.id===id);
+  if(i<0)return;
+  const j=dir==="up"?i-1:i+1;
+  if(j<0||j>=gs.length)return;
+  const a=gs[i],b=gs[j];
+  const tmp=a.sort||0;
+  a.sort=b.sort||0;
+  b.sort=tmp;
+  save();
+  renderGroupBar();renderGroups();renderTasks();
+  const body=document.querySelector("#modal-root .modal-body");
+  if(body)body.innerHTML=manageGroupsHtml();
 }
 function editInbox(){
   showModal({
