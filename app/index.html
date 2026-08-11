@@ -831,7 +831,7 @@ function chime(up=true){
 function notify(title,body){
   if(!("Notification" in window))return;
   if(Notification.permission==="granted"){
-    try{new Notification(title,{body,icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍅%3C/text%3E%3C/svg%3E"})}catch(e){}
+    try{new Notification(title,{body,icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍅%3C/text%3E%3C/svg%3E",requireInteraction:true})}catch(e){}
   }
 }
 function notifState(){
@@ -850,7 +850,7 @@ function updateNotifStatus(){
 function testNotification(){
   if(!("Notification" in window)){toast("当前浏览器不支持桌面通知");return}
   if(Notification.permission==="granted"){
-    try{new Notification("专注清单 · 测试通知",{body:"这是一条系统弹窗测试，番茄钟完成时会以这种方式提醒你",icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍅%3C/text%3E%3C/svg%3E"})}catch(e){}
+    try{new Notification("专注清单 · 测试通知",{body:"这是一条系统弹窗测试，番茄钟完成时会以这种方式提醒你",icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍅%3C/text%3E%3C/svg%3E",requireInteraction:true})}catch(e){}
     toast("已发送测试弹窗，请查看屏幕右上角或通知中心");
   }else if(Notification.permission==="default"){
     toast("请在弹出的系统询问中点击「允许」");
