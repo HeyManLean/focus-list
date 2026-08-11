@@ -389,7 +389,7 @@ label.field input,label.field select{font-weight:500}
         <div class="timer-controls">
           <button class="btn ghost" id="resetBtn">↺ 重置</button>
           <button class="btn primary big" id="startBtn">▶ 开始</button>
-          <button class="btn ghost" id="skipBtn">跳过 ›</button>
+          <button class="btn ghost" id="finishBtn" disabled>✓ 已完成</button>
         </div>
         <div class="timer-stats" id="timerStats"></div>
         <div class="notif-banner" id="notifBanner" style="display:none">
@@ -797,9 +797,11 @@ function showCompletionModal(task){
     });
   }
 }
-function skipTimer(){
-  if(timer.status==="running"){pauseTimer();timer.remaining=0;completeSession()}
-  else if(timer.status==="idle"){resetTimer(timer.mode);toast("计时器已重置")}
+function finishTimer(){
+  if(timer.status!=="running"&&timer.status!=="paused")return;
+  if(timer.status==="running")pauseTimer();
+  timer.remaining=0;
+  completeSession();
 }
 function switchMode(mode){
   if(timer.status==="running")pauseTimer();
@@ -1376,6 +1378,8 @@ function renderTimerView(){
   $$("#modeTabs .mode-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===timer.mode));
   const startBtn=$("#startBtn");
   if(startBtn){startBtn.textContent=timer.status==="running"?"⏸ 暂停":"▶ 开始";startBtn.classList.toggle("primary",timer.status!=="running");startBtn.classList.toggle("ghost",timer.status==="running")}
+  const finishBtn=$("#finishBtn");
+  if(finishBtn)finishBtn.disabled=timer.status==="idle";
   const sel=$("#timerTaskSelect");
   if(sel){
     const opts=state.tasks.filter(t=>!t.completed).sort((a,b)=>(b.pomos||0)-(a.pomos||0));
@@ -1884,7 +1888,7 @@ function bindEvents(){
     else startTimer();
   });
   $("#resetBtn").addEventListener("click",()=>{resetTimer(timer.mode);toast("已重置")});
-  $("#skipBtn").addEventListener("click",skipTimer);
+  $("#finishBtn").addEventListener("click",finishTimer);
   $("#timerTaskSelect").addEventListener("change",e=>{
     state.currentTaskId=e.target.value||null;
     save();renderTimerView();
